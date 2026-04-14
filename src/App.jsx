@@ -63,13 +63,13 @@ const App = () => {
 
   const handlePrint = () => { window.focus(); setTimeout(() => window.print(), 500); };
 
-  // 검색어와 일치하는 거래처 필터링
+  // 오직 '거래처 이름(name)'만 포함하는 검색 로직
   const filteredCustomers = customers.filter(c => 
     searchTerm && renderSafeText(c.name).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading && customers.length === 0) {
-    return <div className="flex flex-col items-center justify-center min-h-screen bg-white"><div className="w-12 h-12 border-4 border-blue-900 border-t-transparent rounded-full animate-spin mb-4"></div><p className="font-black text-blue-900 tracking-widest text-center uppercase">데이터 연결 중...</p></div>;
+    return <div className="flex flex-col items-center justify-center min-h-screen bg-white"><div className="w-12 h-12 border-4 border-blue-900 border-t-transparent rounded-full animate-spin mb-4"></div><p className="font-black text-blue-900 tracking-widest text-center uppercase">데이터 불러오는 중...</p></div>;
   }
 
   return (
@@ -81,7 +81,7 @@ const App = () => {
         </div>
         <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <span className="text-[10px] font-black text-green-700 uppercase tracking-tighter">실시간 연결됨</span>
+          <span className="text-[10px] font-black text-green-700 uppercase tracking-tighter">실시간 연동중</span>
         </div>
       </nav>
 
@@ -96,16 +96,16 @@ const App = () => {
               </div>
               <input 
                 type="text" 
-                placeholder="거래처 이름을 검색하세요..." 
+                placeholder="거래처 이름만 검색 가능합니다..." 
                 className="w-full p-6 pl-14 rounded-[2rem] border-none shadow-xl bg-white font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all text-lg" 
                 value={searchTerm} 
                 onChange={e => setSearchTerm(e.target.value)} 
               />
               
-              {/* 실시간 거래처 검색 결과 목록 */}
+              {/* 이름으로만 필터링된 결과 목록 */}
               {filteredCustomers.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-[2rem] shadow-2xl border border-blue-50 z-50 max-h-80 overflow-y-auto p-2 animate-in slide-in-from-top-2">
-                  <div className="px-5 py-3 text-[10px] font-black text-blue-900 uppercase tracking-widest border-b border-slate-50 mb-1">거래처 검색 결과</div>
+                  <div className="px-5 py-3 text-[10px] font-black text-blue-900 uppercase tracking-widest border-b border-slate-50 mb-1">검색된 거래처</div>
                   {filteredCustomers.map(c => (
                     <div 
                       key={c.id} 
@@ -114,7 +114,7 @@ const App = () => {
                     >
                       <div className="text-left">
                         <div className="font-black text-lg text-slate-900">{renderSafeText(c.name)}</div>
-                        <div className="text-xs text-slate-400 flex items-center gap-1 mt-1"><MapPin size={12}/> {renderSafeText(c.address)}</div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">{renderSafeText(c.address)}</div>
                       </div>
                       <div className="bg-blue-100 p-2 rounded-full text-blue-900"><ArrowRight size={16}/></div>
                     </div>
@@ -146,13 +146,12 @@ const App = () => {
           </div>
         )}
 
-        {/* 나머지 뷰(customer_list, detail, edit 등)는 이전과 동일함 */}
         {currentView === 'customer_list' && (
           <div className="space-y-6 animate-in fade-in text-left">
              <button onClick={() => setCurrentView('dashboard')} className="flex items-center gap-1 text-slate-400 font-bold mb-4"><ChevronLeft size={24}/> <span>대시보드</span></button>
              <h2 className="text-3xl font-black text-left">거래처 목록</h2>
-             <input type="text" placeholder="거래처 검색..." className="w-full p-5 rounded-2xl border-none shadow-inner bg-white font-bold outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-             <div className="space-y-3 pb-20">{customers.filter(c => renderSafeText(c.name).toLowerCase().includes(searchTerm.toLowerCase()) || renderSafeText(c.address).toLowerCase().includes(searchTerm.toLowerCase())).map(c => (<div key={c.id} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 flex justify-between items-center active:bg-slate-50 transition-all" onClick={() => { setSelectedCustomer(c); setCurrentView('customer_detail'); }}><div className="text-left"><h4 className="font-black text-xl text-slate-900">{renderSafeText(c.name)}</h4><p className="text-sm text-slate-400 mt-1">{renderSafeText(c.address) || "주소 미등록"}</p></div><ChevronRight className="text-slate-200" /></div>))}</div>
+             <input type="text" placeholder="거래처 이름으로만 검색..." className="w-full p-5 rounded-2xl border-none shadow-inner bg-white font-bold outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+             <div className="space-y-3 pb-20">{customers.filter(c => renderSafeText(c.name).toLowerCase().includes(searchTerm.toLowerCase())).map(c => (<div key={c.id} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 flex justify-between items-center active:bg-slate-50 transition-all" onClick={() => { setSelectedCustomer(c); setCurrentView('customer_detail'); }}><div className="text-left"><h4 className="font-black text-xl text-slate-900">{renderSafeText(c.name)}</h4><p className="text-sm text-slate-400 mt-1">{renderSafeText(c.address) || "주소 미등록"}</p></div><ChevronRight className="text-slate-200" /></div>))}</div>
           </div>
         )}
 
