@@ -34,7 +34,6 @@ const App = () => {
 
   const renderSafeText = (text) => {
     if (text === null || text === undefined) return "";
-    if (typeof text === 'object') return JSON.stringify(text);
     return String(text);
   };
 
@@ -64,6 +63,11 @@ const App = () => {
 
   const handlePrint = () => { window.focus(); setTimeout(() => window.print(), 500); };
 
+  // 검색어와 일치하는 거래처 필터링
+  const filteredCustomers = customers.filter(c => 
+    searchTerm && renderSafeText(c.name).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   if (loading && customers.length === 0) {
     return <div className="flex flex-col items-center justify-center min-h-screen bg-white"><div className="w-12 h-12 border-4 border-blue-900 border-t-transparent rounded-full animate-spin mb-4"></div><p className="font-black text-blue-900 tracking-widest text-center uppercase">데이터 연결 중...</p></div>;
   }
@@ -71,13 +75,13 @@ const App = () => {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 text-left overflow-x-hidden">
       <nav className="bg-white border-b sticky top-0 z-30 p-4 flex justify-between items-center shadow-sm print:hidden">
-        <div className="flex items-center gap-2 font-black text-xl text-blue-900 cursor-pointer" onClick={() => setCurrentView('dashboard')}>
+        <div className="flex items-center gap-2 font-black text-xl text-blue-900 cursor-pointer" onClick={() => {setCurrentView('dashboard'); setSearchTerm('');}}>
           <div className="bg-blue-900 p-1.5 rounded-xl text-white shadow-md"><ShieldCheck size={22}/></div>
           BPCS 방역특별시
         </div>
         <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <span className="text-[10px] font-black text-green-700 uppercase tracking-tighter">구글 시트 연결됨</span>
+          <span className="text-[10px] font-black text-green-700 uppercase tracking-tighter">실시간 연결됨</span>
         </div>
       </nav>
 
@@ -85,29 +89,75 @@ const App = () => {
         {currentView === 'dashboard' && (
           <div className="space-y-8 animate-in fade-in duration-500">
             <header className="space-y-1"><h3 className="text-sm font-bold text-blue-800 italic text-left">Best Pest Control Solution</h3><h2 className="text-3xl font-black text-left">{new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}</h2></header>
-            <button onClick={() => { setFormData(initialReportForm); setCurrentView('edit'); }} className="w-full bg-blue-900 text-white p-7 rounded-[2rem] font-black text-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><Plus strokeWidth={3} size={28}/> 신규 작업 작성</button>
+            
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-900 transition-colors">
+                <Search size={20} />
+              </div>
+              <input 
+                type="text" 
+                placeholder="거래처 이름을 검색하세요..." 
+                className="w-full p-6 pl-14 rounded-[2rem] border-none shadow-xl bg-white font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all text-lg" 
+                value={searchTerm} 
+                onChange={e => setSearchTerm(e.target.value)} 
+              />
+              
+              {/* 실시간 거래처 검색 결과 목록 */}
+              {filteredCustomers.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-[2rem] shadow-2xl border border-blue-50 z-50 max-h-80 overflow-y-auto p-2 animate-in slide-in-from-top-2">
+                  <div className="px-5 py-3 text-[10px] font-black text-blue-900 uppercase tracking-widest border-b border-slate-50 mb-1">거래처 검색 결과</div>
+                  {filteredCustomers.map(c => (
+                    <div 
+                      key={c.id} 
+                      className="flex items-center justify-between p-5 hover:bg-blue-50 rounded-2xl cursor-pointer transition-colors active:scale-[0.98]"
+                      onClick={() => { setSelectedCustomer(c); setCurrentView('customer_detail'); setSearchTerm(''); }}
+                    >
+                      <div className="text-left">
+                        <div className="font-black text-lg text-slate-900">{renderSafeText(c.name)}</div>
+                        <div className="text-xs text-slate-400 flex items-center gap-1 mt-1"><MapPin size={12}/> {renderSafeText(c.address)}</div>
+                      </div>
+                      <div className="bg-blue-100 p-2 rounded-full text-blue-900"><ArrowRight size={16}/></div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => { setFormData(initialReportForm); setCurrentView('edit'); }} className="col-span-2 bg-blue-900 text-white p-7 rounded-[2rem] font-black text-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><Plus strokeWidth={3} size={28}/> 신규 작업 작성</button>
               <button onClick={() => { setCustomerFormData(initialCustomerForm); setCurrentView('customer_edit'); }} className="bg-white border-2 border-blue-900 text-blue-900 p-6 rounded-3xl font-bold flex flex-col items-center gap-1 active:bg-blue-50 transition-all shadow-sm"><UserPlus size={24}/><span className="text-sm">거래처 등록</span></button>
               <button onClick={() => setCurrentView('customer_list')} className="bg-white border-2 border-slate-200 text-slate-600 p-6 rounded-3xl font-bold flex flex-col items-center gap-1 active:bg-slate-50 transition-all shadow-sm"><Users size={24}/><span className="text-sm">거래처 목록</span></button>
             </div>
+
             <div className="space-y-4">
               <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1 text-left">최근 작업 기록</h4>
-              <div className="grid gap-3">{reports.slice(0, 10).map(r => (<div key={r.id} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 flex justify-between items-center active:bg-slate-50 transition-all" onClick={() => { setFormData(r); setCurrentView('report_view'); }}><div className="text-left"><div className="flex items-center gap-2 mb-1.5"><span className="text-[10px] font-black text-blue-900 bg-blue-50 px-2.5 py-1 rounded-full">{renderSafeText(r.date)}</span></div><h4 className="font-black text-xl text-slate-900">{renderSafeText(r.customerName)}</h4></div><ChevronRight className="text-slate-200" /></div>))}</div>
+              <div className="grid gap-3">
+                {reports.slice(0, 10).map(r => (
+                  <div key={r.id} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 flex justify-between items-center active:bg-slate-50 transition-all" onClick={() => { setFormData(r); setCurrentView('report_view'); }}>
+                    <div className="text-left">
+                      <div className="flex items-center gap-2 mb-1.5"><span className="text-[10px] font-black text-blue-900 bg-blue-50 px-2.5 py-1 rounded-full">{renderSafeText(r.date)}</span></div>
+                      <h4 className="font-black text-xl text-slate-900">{renderSafeText(r.customerName)}</h4>
+                    </div>
+                    <ChevronRight className="text-slate-200" />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
+        {/* 나머지 뷰(customer_list, detail, edit 등)는 이전과 동일함 */}
         {currentView === 'customer_list' && (
           <div className="space-y-6 animate-in fade-in text-left">
              <button onClick={() => setCurrentView('dashboard')} className="flex items-center gap-1 text-slate-400 font-bold mb-4"><ChevronLeft size={24}/> <span>대시보드</span></button>
              <h2 className="text-3xl font-black text-left">거래처 목록</h2>
              <input type="text" placeholder="거래처 검색..." className="w-full p-5 rounded-2xl border-none shadow-inner bg-white font-bold outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-             <div className="space-y-3 pb-20">{customers.filter(c => String(c.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || String(c.address || "").toLowerCase().includes(searchTerm.toLowerCase())).map(c => (<div key={c.id} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 flex justify-between items-center active:bg-slate-50 transition-all" onClick={() => { setSelectedCustomer(c); setCurrentView('customer_detail'); }}><div className="text-left"><h4 className="font-black text-xl text-slate-900">{renderSafeText(c.name)}</h4><p className="text-sm text-slate-400 mt-1">{renderSafeText(c.address) || "주소 미등록"}</p></div><ChevronRight className="text-slate-200" /></div>))}</div>
+             <div className="space-y-3 pb-20">{customers.filter(c => renderSafeText(c.name).toLowerCase().includes(searchTerm.toLowerCase()) || renderSafeText(c.address).toLowerCase().includes(searchTerm.toLowerCase())).map(c => (<div key={c.id} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 flex justify-between items-center active:bg-slate-50 transition-all" onClick={() => { setSelectedCustomer(c); setCurrentView('customer_detail'); }}><div className="text-left"><h4 className="font-black text-xl text-slate-900">{renderSafeText(c.name)}</h4><p className="text-sm text-slate-400 mt-1">{renderSafeText(c.address) || "주소 미등록"}</p></div><ChevronRight className="text-slate-200" /></div>))}</div>
           </div>
         )}
 
         {currentView === 'customer_detail' && selectedCustomer && (
-          <div className="space-y-6 animate-in slide-in-from-right text-left"><button onClick={() => setCurrentView('customer_list')} className="flex items-center gap-1 text-slate-400 font-bold mb-2"><ChevronLeft size={20}/> 목록으로</button><div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-50 text-left"><h2 className="text-4xl font-black text-slate-900 mb-6">{renderSafeText(selectedCustomer.name)}</h2><div className="space-y-3 text-slate-600 font-bold"><p className="flex items-center gap-3"><Phone size={18} className="text-blue-900"/> {renderSafeText(selectedCustomer.phone) || "미등록"}</p><p className="flex items-center gap-3"><MapPin size={18} className="text-blue-900"/> {renderSafeText(selectedCustomer.address) || "미등록"}</p></div></div><div className="bg-blue-900 p-7 rounded-3xl shadow-xl text-white text-left"><h4 className="text-[10px] font-black text-blue-300 uppercase tracking-widest mb-3 flex items-center gap-2"><BookOpen size={14}/> 내부 관리 메모</h4><p className="font-bold text-sm leading-relaxed whitespace-pre-wrap">{renderSafeText(selectedCustomer.privateMemo) || "기록된 지침이 없습니다."}</p></div></div>
+          <div className="space-y-6 animate-in slide-in-from-right text-left"><button onClick={() => {setCurrentView('dashboard'); setSearchTerm('');}} className="flex items-center gap-1 text-slate-400 font-bold mb-2"><ChevronLeft size={20}/> 대시보드로</button><div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-50 text-left"><h2 className="text-4xl font-black text-slate-900 mb-6">{renderSafeText(selectedCustomer.name)}</h2><div className="space-y-3 text-slate-600 font-bold"><p className="flex items-center gap-3"><Phone size={18} className="text-blue-900"/> {renderSafeText(selectedCustomer.phone) || "미등록"}</p><p className="flex items-center gap-3"><MapPin size={18} className="text-blue-900"/> {renderSafeText(selectedCustomer.address) || "미등록"}</p></div></div><div className="bg-blue-900 p-7 rounded-3xl shadow-xl text-white text-left"><h4 className="text-[10px] font-black text-blue-300 uppercase tracking-widest mb-3 flex items-center gap-2"><BookOpen size={14}/> 내부 관리 메모</h4><p className="font-bold text-sm leading-relaxed whitespace-pre-wrap">{renderSafeText(selectedCustomer.privateMemo) || "기록된 지침이 없습니다."}</p></div><button onClick={() => { setFormData({...initialReportForm, customerName: selectedCustomer.name}); setCurrentView('edit'); }} className="w-full bg-blue-100 text-blue-900 p-6 rounded-2xl font-black flex items-center justify-center gap-2 mt-4">이 거래처로 새 작업 작성하기 <ArrowRight size={18}/></button></div>
         )}
 
         {currentView === 'customer_edit' && (
@@ -115,11 +165,11 @@ const App = () => {
         )}
 
         {currentView === 'edit' && (
-          <div className="space-y-6 animate-in slide-in-from-bottom text-left text-left"><h2 className="text-2xl font-black">작업 작성</h2><div className="bg-white p-7 rounded-[2rem] shadow-sm border border-slate-100 space-y-4"><input type="text" placeholder="거래처명" className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold text-lg outline-none focus:ring-2 focus:ring-blue-900" value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} /><input type="date" className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold text-lg outline-none focus:ring-2 focus:ring-blue-900" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} /></div><div className="space-y-3 px-1 text-left"><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">해충 점검</h4><div className="grid grid-cols-2 gap-3">{ALL_PESTS.map((pest, i) => (<ChecklistItem key={i} pest={pest} checked={formData.checklist && formData.checklist[pest]} onToggle={() => setFormData(p => ({...p, checklist: {...(p.checklist || {}), [pest]: !(p.checklist && p.checklist[pest])}}))} />))}</div></div><textarea placeholder="방역 상세 작업 내역..." className="w-full p-7 rounded-[2.5rem] border-2 border-slate-100 font-bold h-56 shadow-sm outline-none focus:border-blue-900 transition-all" value={formData.workContent} onChange={e => setFormData({...formData, workContent: e.target.value})} /><div className="bg-blue-900 p-8 rounded-[2.5rem] shadow-xl text-white text-left"><h4 className="text-blue-300 text-[10px] font-black uppercase mb-2">내부 메모 (비공개)</h4><textarea className="w-full bg-blue-800/50 border-none text-white p-5 rounded-2xl outline-none font-bold h-32" value={formData.privateMemo} onChange={e => setFormData({...formData, privateMemo: e.target.value})} /></div><button onClick={() => saveToSheet('reports', {...formData, id: Date.now().toString()})} className="w-full bg-blue-900 text-white p-6 rounded-[1.5rem] font-black text-xl shadow-xl active:scale-[0.98] transition-all">구글 시트 저장</button></div>
+          <div className="space-y-6 animate-in slide-in-from-bottom text-left"><h2 className="text-2xl font-black">작업 작성</h2><div className="bg-white p-7 rounded-[2rem] shadow-sm border border-slate-100 space-y-4"><input type="text" placeholder="거래처명" className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold text-lg outline-none focus:ring-2 focus:ring-blue-900" value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} /><input type="date" className="w-full p-4 rounded-2xl bg-slate-50 border-none font-bold text-lg outline-none focus:ring-2 focus:ring-blue-900" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} /></div><div className="space-y-3 px-1 text-left"><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">해충 점검</h4><div className="grid grid-cols-2 gap-3">{ALL_PESTS.map((pest, i) => (<ChecklistItem key={i} pest={pest} checked={formData.checklist && formData.checklist[pest]} onToggle={() => setFormData(p => ({...p, checklist: {...(p.checklist || {}), [pest]: !(p.checklist && p.checklist[pest])}}))} />))}</div></div><textarea placeholder="방역 상세 작업 내역..." className="w-full p-7 rounded-[2.5rem] border-2 border-slate-100 font-bold h-56 shadow-sm outline-none focus:border-blue-900 transition-all" value={formData.workContent} onChange={e => setFormData({...formData, workContent: e.target.value})} /><div className="bg-blue-900 p-8 rounded-[2.5rem] shadow-xl text-white text-left"><h4 className="text-blue-300 text-[10px] font-black uppercase mb-2">내부 메모 (비공개)</h4><textarea className="w-full bg-blue-800/50 border-none text-white p-5 rounded-2xl outline-none font-bold h-32" value={formData.privateMemo} onChange={e => setFormData({...formData, privateMemo: e.target.value})} /></div><button onClick={() => saveToSheet('reports', {...formData, id: Date.now().toString()})} className="w-full bg-blue-900 text-white p-6 rounded-[1.5rem] font-black text-xl shadow-xl active:scale-[0.98] transition-all">구글 시트 저장</button></div>
         )}
 
         {currentView === 'report_view' && (
-           <div className="space-y-8 animate-in zoom-in-95 text-left text-left"><div className="flex justify-between items-center print:hidden"><button onClick={() => setCurrentView('dashboard')} className="text-slate-400 font-bold flex items-center gap-1"><ChevronLeft size={24}/> 뒤로</button><button onClick={handlePrint} className="bg-blue-900 text-white px-8 py-4 rounded-2xl font-black shadow-xl flex items-center gap-2 active:scale-95 transition-all"><Printer size={20}/> PDF 저장/인쇄</button></div><div id="report-area" className="bg-white p-10 sm:p-20 border border-slate-100 print:p-0 print:border-none shadow-2xl print:shadow-none rounded-[3rem] print:rounded-none text-left"><div className="border-b-4 border-blue-900 pb-10 mb-16 flex justify-between items-end"><div className="text-left"><h1 className="text-6xl font-black text-slate-900 tracking-tighter mb-2 leading-none text-left">SERVICE<br/>REPORT</h1><p className="text-blue-600 font-black text-[12px] tracking-[0.5em] uppercase italic text-left opacity-80">Best Pest Control Solution</p></div><div className="text-right font-black text-sm text-slate-400 uppercase tracking-widest text-right">Date: {renderSafeText(formData.date)}</div></div><div className="space-y-16 text-left"><div className="grid grid-cols-2 gap-10"><div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 text-left"><p className="text-[11px] font-black text-blue-800 uppercase mb-2 tracking-widest opacity-60 text-left">Customer</p><p className="text-3xl font-black text-slate-900 text-left">{renderSafeText(formData.customerName)}</p></div><div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 text-left"><p className="text-[11px] font-black text-blue-800 uppercase mb-2 tracking-widest opacity-60 text-left">Provider</p><p className="text-2xl font-black text-slate-900 text-left">BPCS 방역특별시</p></div></div><section><h4 className="text-[11px] font-black text-slate-400 uppercase mb-8 tracking-[0.4em] border-b pb-3 text-left">Inspection Result</h4><div className="flex flex-wrap gap-3">{formData.checklist && ALL_PESTS.map((p, i) => formData.checklist[p] && (<span key={i} className="px-5 py-2.5 bg-blue-900 text-white rounded-full text-[13px] font-black shadow-lg">{p}</span>))}{(!formData.checklist || !Object.values(formData.checklist).some(v => v)) && <p className="text-slate-300 font-bold italic">특이사항 없음</p>}</div></section><section><h4 className="text-[11px] font-black text-slate-400 uppercase mb-8 tracking-[0.4em] border-b pb-3 text-left">Work Summary</h4><div className="bg-slate-50 p-10 rounded-[2.5rem] min-h-[250px] text-left leading-[1.8]"><p className="text-slate-800 text-xl font-bold whitespace-pre-wrap text-left">{renderSafeText(formData.workContent) || "기록된 내용이 없습니다."}</p></div></section><section className="pt-24 border-t-2 border-slate-900 flex justify-between items-end uppercase text-[11px] font-black text-slate-400 text-left text-left"><p className="text-left text-left">BPCS Cloud Verification System</p><div className="text-right flex flex-col items-end text-right"><div className="w-40 h-20 border-b-2 border-slate-900 flex items-center justify-center text-slate-200 italic font-serif text-3xl font-black opacity-40">Verified</div></div></section></div></div></div>
+           <div className="space-y-8 animate-in zoom-in-95 text-left"><div className="flex justify-between items-center print:hidden"><button onClick={() => {setCurrentView('dashboard'); setSearchTerm('');}} className="text-slate-400 font-bold flex items-center gap-1"><ChevronLeft size={24}/> 뒤로</button><button onClick={handlePrint} className="bg-blue-900 text-white px-8 py-4 rounded-2xl font-black shadow-xl flex items-center gap-2 active:scale-95 transition-all"><Printer size={20}/> PDF 저장/인쇄</button></div><div id="report-area" className="bg-white p-10 sm:p-20 border border-slate-100 print:p-0 print:border-none shadow-2xl print:shadow-none rounded-[3rem] print:rounded-none text-left"><div className="border-b-4 border-blue-900 pb-10 mb-16 flex justify-between items-end"><div className="text-left"><h1 className="text-6xl font-black text-slate-900 tracking-tighter mb-2 leading-none text-left">SERVICE<br/>REPORT</h1><p className="text-blue-600 font-black text-[12px] tracking-[0.5em] uppercase italic text-left opacity-80">Best Pest Control Solution</p></div><div className="text-right font-black text-sm text-slate-400 uppercase tracking-widest text-right">Date: {renderSafeText(formData.date)}</div></div><div className="space-y-16 text-left"><div className="grid grid-cols-2 gap-10"><div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 text-left"><p className="text-[11px] font-black text-blue-800 uppercase mb-2 tracking-widest opacity-60 text-left">Customer</p><p className="text-3xl font-black text-slate-900 text-left">{renderSafeText(formData.customerName)}</p></div><div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 text-left"><p className="text-[11px] font-black text-blue-800 uppercase mb-2 tracking-widest opacity-60 text-left">Provider</p><p className="text-2xl font-black text-slate-900 text-left">BPCS 방역특별시</p></div></div><section><h4 className="text-[11px] font-black text-slate-400 uppercase mb-8 tracking-[0.4em] border-b pb-3 text-left">Inspection Result</h4><div className="flex flex-wrap gap-3">{formData.checklist && ALL_PESTS.map((p, i) => formData.checklist[p] && (<span key={i} className="px-5 py-2.5 bg-blue-900 text-white rounded-full text-[13px] font-black shadow-lg">{p}</span>))}{(!formData.checklist || !Object.values(formData.checklist).some(v => v)) && <p className="text-slate-300 font-bold italic">특이사항 없음</p>}</div></section><section><h4 className="text-[11px] font-black text-slate-400 uppercase mb-8 tracking-[0.4em] border-b pb-3 text-left">Work Summary</h4><div className="bg-slate-50 p-10 rounded-[2.5rem] min-h-[250px] text-left leading-[1.8]"><p className="text-slate-800 text-xl font-bold whitespace-pre-wrap text-left">{renderSafeText(formData.workContent) || "기록된 내용이 없습니다."}</p></div></section><section className="pt-24 border-t-2 border-slate-900 flex justify-between items-end uppercase text-[11px] font-black text-slate-400 text-left"><p className="text-left">BPCS Cloud Verification System</p><div className="text-right flex flex-col items-end text-right"><div className="w-40 h-20 border-b-2 border-slate-900 flex items-center justify-center text-slate-200 italic font-serif text-3xl font-black opacity-40">Verified</div></div></section></div></div></div>
         )}
       </main>
 
@@ -133,7 +183,6 @@ const App = () => {
           #report-area * { visibility: visible !important; }
           .print\\:hidden, nav, button, input, textarea { display: none !important; }
         }
-        .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
       `}} />
     </div>
