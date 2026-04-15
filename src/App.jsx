@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, ChevronRight, ShieldCheck, X, ArrowRight,
-  Home, Users, ChevronLeft, Phone, MapPin, BookOpen, Edit3, Printer, History, UserPlus, CheckSquare, Square
+  Home, Users, ChevronLeft, Phone, MapPin, BookOpen, Edit3, Printer, History, UserPlus, CheckSquare, Square, List
 } from 'lucide-react';
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWvHRx4jSkPcqajhIqcrLgq0qhEgyj8P6xnpu4260h3mxvkEPlaThkeOLjSo7VVIGG/exec"; 
@@ -17,25 +17,26 @@ const App = () => {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   
   const initialReportForm = { id: '', customerName: '', date: new Date().toISOString().split('T')[0], checklist: {}, workContent: '', privateMemo: '' };
+  const initialCustomerForm = { id: '', name: '', phone: '', address: '', contractDate: '', contractDetails: '', privateMemo: '' };
+  
   const [formData, setFormData] = useState(initialReportForm);
+  const [customerFormData, setCustomerFormData] = useState(initialCustomerForm);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // 어떤 데이터 타입이 들어와도 안전하게 문자로 변환해주는 도구
-  const cleanStr = (val) => {
-    if (val === null || val === undefined) return "";
-    return String(val).replace(/\s/g, "").toLowerCase();
-  };
-
   const fetchData = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       const response = await fetch(SCRIPT_URL);
       const data = await response.json();
-      // 데이터가 비어있지 않은 것만 골라내기
-      setCustomers(Array.isArray(data.customers) ? data.customers.filter(c => c.name) : []);
-      setReports(Array.isArray(data.reports) ? data.reports.sort((a, b) => new Date(b.date) - new Date(a.date)) : []);
-    } catch (e) { console.error("Fetch Error"); }
-    finally { setLoading(false); }
+      if (data) {
+        setCustomers(Array.isArray(data.customers) ? data.customers : []);
+        setReports(Array.isArray(data.reports) ? data.reports.sort((a, b) => new Date(b.date) - new Date(a.date)) : []);
+      }
+    } catch (e) {
+      console.error("데이터를 가져오는데 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -44,197 +45,184 @@ const App = () => {
     setLoading(true);
     try {
       await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action, type, data }) });
-      setTimeout(() => { fetchData(); setCurrentView('dashboard'); setSearchTerm(''); }, 1500);
+      setTimeout(() => { 
+        fetchData(); 
+        setCurrentView('dashboard'); 
+        setSearchTerm(''); 
+        setIsEditMode(false);
+      }, 1500);
     } catch (e) { setLoading(false); }
   };
 
-  // ★ 24, 25 같은 숫자 검색을 위한 초정밀 필터 ★
-  const filteredResults = customers.filter(c => {
-    const search = cleanStr(searchTerm);
-    if (!search) return false;
-    // 오직 거래처 이름(name)에서만 검색
-    return cleanStr(c.name).includes(search);
-  }).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  const handlePrint = () => { window.focus(); setTimeout(() => window.print(), 500); };
+
+  // ★ 숫자 검색 필터 (가장 강력한 버전) ★
+  const getFilteredList = () => {
+    const s = searchTerm.trim().toLowerCase();
+    if (!s) return [];
+
+    return customers.filter(c => {
+      const name = String(c.name || "").replace(/\s/g, "").toLowerCase();
+      const search = s.replace(/\s/g, "");
+      // 이름이 검색어로 시작하거나(24...), 이름 안에 검색어가 포함되면 표시
+      return name.startsWith(search) || name.indexOf(search) !== -1;
+    });
+  };
+
+  const filteredResults = getFilteredList();
 
   if (loading && customers.length === 0) {
-    return <div className="flex items-center justify-center min-h-screen font-black text-blue-900 animate-pulse text-lg">데이터 연결 중...</div>;
+    return <div className="flex flex-col items-center justify-center min-h-screen bg-white font-black text-blue-900 gap-4"><div className="w-10 h-10 border-4 border-blue-900 border-t-transparent rounded-full animate-spin"></div>시스템 연결 중...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 text-left selection:bg-blue-100">
-      <nav className="bg-white border-b sticky top-0 z-50 p-4 flex justify-between items-center shadow-sm print:hidden">
-        <div className="flex items-center gap-2 font-black text-xl text-blue-900" onClick={() => {setCurrentView('dashboard'); setSearchTerm('');}}>
-          <ShieldCheck size={24} strokeWidth={3}/> BPCS 방역특별시
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 text-left overflow-x-hidden">
+      <nav className="bg-white border-b sticky top-0 z-50 p-4 flex justify-between items-center shadow-sm">
+        <div className="flex items-center gap-2 font-black text-xl text-blue-900 cursor-pointer" onClick={() => {setCurrentView('dashboard'); setSearchTerm('');}}>
+          <ShieldCheck size={22}/> BPCS 방역특별시
         </div>
-        <div className="flex items-center gap-1 bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-          <span className="text-[10px] font-black text-green-700">ONLINE</span>
-        </div>
+        <div className="bg-green-500 w-2 h-2 rounded-full animate-pulse"></div>
       </nav>
 
-      <main className="max-w-4xl mx-auto p-5 print:p-0">
+      <main className="max-w-4xl mx-auto p-5">
         {currentView === 'dashboard' && (
-          <div className="space-y-8 animate-in fade-in duration-500">
-            <header className="space-y-1">
-              <h3 className="text-[11px] font-black text-blue-800 tracking-[0.2em] uppercase italic opacity-70">Expert Pest Control Solution</h3>
-              <h2 className="text-4xl font-black tracking-tighter">{new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}</h2>
+          <div className="space-y-6 animate-in fade-in">
+            <header className="pb-2">
+              <h3 className="text-xs font-bold text-blue-800 italic uppercase">Best Pest Control Solution</h3>
+              <h2 className="text-3xl font-black">{new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}</h2>
             </header>
             
-            {/* 검색창 */}
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-6 flex items-center text-slate-300 group-focus-within:text-blue-900 transition-colors"><Search size={22} strokeWidth={3}/></div>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-5 flex items-center text-slate-400"><Search size={20} /></div>
               <input 
                 type="text" 
-                placeholder="검색" 
-                className="w-full p-7 pl-16 rounded-[2.5rem] border-none shadow-2xl bg-white font-black text-2xl outline-none focus:ring-8 focus:ring-blue-50 transition-all placeholder:text-slate-200" 
+                placeholder="검색 (예: 24, 25)" 
+                className="w-full p-6 pl-14 rounded-[2rem] border-none shadow-xl bg-white font-black text-xl outline-none focus:ring-4 focus:ring-blue-100 transition-all" 
                 value={searchTerm} 
                 onChange={e => setSearchTerm(e.target.value)} 
               />
               
-              {/* 실시간 이름 검색 결과 */}
               {searchTerm.trim() !== "" && (
-                <div className="absolute top-full left-0 right-0 mt-4 bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-blue-50 z-50 max-h-[60vh] overflow-y-auto p-3 animate-in slide-in-from-top-4">
-                  <div className="px-6 py-4 text-[10px] font-black text-blue-900 uppercase border-b border-slate-50 mb-2 tracking-[0.3em]">거래처 검색 결과 ({filteredResults.length})</div>
+                <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-[2rem] shadow-2xl border border-blue-50 z-50 max-h-[60vh] overflow-y-auto p-3">
+                  <div className="px-5 py-3 text-[10px] font-black text-blue-900 uppercase border-b border-slate-50 mb-2 tracking-widest">"{searchTerm}" 검색 결과</div>
                   {filteredResults.length > 0 ? (
                     filteredResults.map(c => (
-                      <div key={c.id || Math.random()} className="flex items-center justify-between p-6 hover:bg-blue-50 rounded-3xl cursor-pointer active:scale-[0.98] transition-all group" onClick={() => { setSelectedCustomer(c); setCurrentView('customer_detail'); setSearchTerm(''); }}>
-                        <div>
-                          <div className="font-black text-2xl text-slate-900 group-hover:text-blue-900 transition-colors">{String(c.name)}</div>
-                          <div className="text-sm text-slate-400 font-bold mt-1 flex items-center gap-1"><MapPin size={14}/> {String(c.address || "주소 정보 없음")}</div>
+                      <div key={c.id} className="flex items-center justify-between p-5 hover:bg-blue-50 rounded-2xl cursor-pointer mb-1 transition-all" onClick={() => { setSelectedCustomer(c); setCurrentView('customer_detail'); setSearchTerm(''); }}>
+                        <div className="text-left">
+                          <div className="font-black text-xl text-slate-900">{String(c.name)}</div>
+                          <div className="text-xs text-slate-400 mt-1">{String(c.address || "주소 미등록")}</div>
                         </div>
-                        <div className="bg-blue-900 text-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"><ArrowRight size={20}/></div>
+                        <ArrowRight size={20} className="text-blue-200"/>
                       </div>
                     ))
                   ) : (
-                    <div className="p-16 text-center text-slate-300 font-black italic text-xl">일치하는 이름이 없습니다.</div>
+                    <div className="p-10 text-center text-slate-400 font-bold italic">해당 거래처가 없습니다.</div>
                   )}
                 </div>
               )}
             </div>
 
-            {/* 메인 메뉴 버튼 */}
-            <div className="grid grid-cols-2 gap-4 pt-4">
-              <button onClick={() => { setFormData(initialReportForm); setIsEditMode(false); setCurrentView('edit'); }} className="col-span-2 bg-blue-900 text-white p-8 rounded-[2.5rem] font-black text-2xl shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all hover:bg-slate-900"><Plus strokeWidth={4} size={32}/> 신규 작업 작성</button>
-              <button onClick={() => setCurrentView('reports_history')} className="bg-white border-2 border-slate-200 text-slate-500 p-7 rounded-[2rem] font-black flex flex-col items-center gap-2 shadow-sm active:bg-slate-50 active:scale-95 transition-all"><History size={28}/>기록 수정/조회</button>
-              <button onClick={() => setCurrentView('customer_list')} className="bg-white border-2 border-slate-200 text-slate-500 p-7 rounded-[2rem] font-black flex flex-col items-center gap-2 shadow-sm active:bg-slate-50 active:scale-95 transition-all"><Users size={28}/>거래처 목록</button>
+            <div className="grid grid-cols-2 gap-3 pt-4">
+              <button onClick={() => { setFormData(initialReportForm); setIsEditMode(false); setCurrentView('edit'); }} className="col-span-2 bg-blue-900 text-white p-8 rounded-[2rem] font-black text-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><Plus strokeWidth={4} size={32}/> 신규 작업 작성</button>
+              <button onClick={() => { setCustomerFormData(initialCustomerForm); setCurrentView('customer_edit'); }} className="bg-white border-2 border-blue-900 text-blue-900 p-6 rounded-3xl font-black flex flex-col items-center gap-2 shadow-sm"><UserPlus size={24}/>거래처 등록</button>
+              <button onClick={() => { setCurrentView('reports_history'); setSearchTerm(''); }} className="bg-white border-2 border-slate-200 text-slate-600 p-6 rounded-3xl font-black flex flex-col items-center gap-2 shadow-sm"><History size={24}/>기록 수정</button>
             </div>
           </div>
         )}
 
-        {/* --- 작업 기록 조회/수정 목록 --- */}
-        {currentView === 'reports_history' && (
+        {/* --- 거래처 상세 페이지 --- */}
+        {currentView === 'customer_detail' && selectedCustomer && (
           <div className="space-y-6 animate-in slide-in-from-right">
-             <button onClick={() => setCurrentView('dashboard')} className="flex items-center gap-2 text-slate-400 font-black mb-4 hover:text-blue-900 transition-colors"><ChevronLeft size={28} strokeWidth={3}/> <span>돌아가기</span></button>
-             <h2 className="text-4xl font-black tracking-tight">기록 수정 및 조회</h2>
-             <div className="relative">
-                <Search className="absolute left-5 top-5 text-slate-300" size={20}/>
-                <input type="text" placeholder="거래처명으로 검색" className="w-full p-5 pl-14 rounded-2xl border-none shadow-inner bg-white font-bold outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-             </div>
-             <div className="space-y-3 pb-24">
-               {reports.filter(r => cleanStr(r.customerName).includes(cleanStr(searchTerm))).map(r => (
-                 <div key={r.id} className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex justify-between items-center active:scale-[0.98] transition-all" onClick={() => { setFormData(r); setCurrentView('report_view'); }}>
+            <button onClick={() => setCurrentView('dashboard')} className="flex items-center gap-1 text-slate-400 font-bold"><ChevronLeft size={24}/> 뒤로가기</button>
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-50">
+              <h2 className="text-4xl font-black text-slate-900 mb-6">{String(selectedCustomer.name)}</h2>
+              <div className="space-y-4 text-slate-600 font-bold">
+                <p className="flex items-center gap-3"><Phone size={20} className="text-blue-900"/> {String(selectedCustomer.phone || "미등록")}</p>
+                <p className="flex items-center gap-3"><MapPin size={20} className="text-blue-900"/> {String(selectedCustomer.address || "미등록")}</p>
+              </div>
+            </div>
+            <div className="bg-blue-900 p-8 rounded-[2.5rem] shadow-xl text-white">
+              <h4 className="text-blue-300 text-[10px] font-black uppercase mb-3 flex items-center gap-2"><BookOpen size={14}/> 내부 관리 메모</h4>
+              <p className="font-bold leading-relaxed whitespace-pre-wrap text-sm">{String(selectedCustomer.privateMemo || "정보 없음")}</p>
+            </div>
+            <button onClick={() => { setFormData({...initialReportForm, customerName: selectedCustomer.name}); setIsEditMode(false); setCurrentView('edit'); }} className="w-full bg-blue-50 text-blue-900 p-7 rounded-3xl font-black text-lg flex items-center justify-center gap-2 mt-4">새 작업 시작 <ArrowRight size={20}/></button>
+          </div>
+        )}
+
+        {/* --- 작업 기록 조회 목록 --- */}
+        {currentView === 'reports_history' && (
+          <div className="space-y-6">
+             <button onClick={() => setCurrentView('dashboard')} className="flex items-center gap-1 text-slate-400 font-bold"><ChevronLeft size={24}/> 뒤로</button>
+             <h2 className="text-3xl font-black">작업 기록 수정</h2>
+             <input type="text" placeholder="이름으로 검색" className="w-full p-5 rounded-2xl border-none shadow-inner bg-white font-bold outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+             <div className="space-y-3">
+               {reports.filter(r => String(r.customerName).includes(searchTerm)).map(r => (
+                 <div key={r.id} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center" onClick={() => { setFormData(r); setCurrentView('report_view'); }}>
                    <div className="text-left">
-                     <span className="text-[10px] font-black text-blue-900 bg-blue-50 px-3 py-1 rounded-full mb-2 inline-block tracking-widest">{String(r.date)}</span>
-                     <h4 className="font-black text-2xl text-slate-900">{String(r.customerName)}</h4>
+                     <span className="text-[10px] font-black text-blue-900 bg-blue-50 px-2 py-1 rounded-full">{String(r.date)}</span>
+                     <h4 className="font-black text-xl mt-1">{String(r.customerName)}</h4>
                    </div>
-                   <ChevronRight className="text-slate-200" size={30}/>
+                   <ChevronRight className="text-slate-200" />
                  </div>
                ))}
              </div>
           </div>
         )}
 
-        {/* --- 거래처 상세 페이지 --- */}
-        {currentView === 'customer_detail' && selectedCustomer && (
-          <div className="space-y-8 animate-in slide-in-from-right">
-            <button onClick={() => setCurrentView('dashboard')} className="flex items-center gap-2 text-slate-400 font-black"><ChevronLeft size={28} strokeWidth={3}/> <span>대시보드</span></button>
-            <div className="bg-white p-10 rounded-[3rem] shadow-2xl border border-slate-50 text-left">
-              <h2 className="text-5xl font-black text-slate-900 mb-8 leading-tight tracking-tighter">{String(selectedCustomer.name)}</h2>
-              <div className="space-y-5 text-slate-600 font-black text-lg">
-                <p className="flex items-center gap-4 bg-slate-50 p-5 rounded-2xl"><Phone size={24} className="text-blue-900"/> {String(selectedCustomer.phone || "연락처 미등록")}</p>
-                <p className="flex items-center gap-4 bg-slate-50 p-5 rounded-2xl"><MapPin size={24} className="text-blue-900"/> {String(selectedCustomer.address || "주소 미등록")}</p>
-              </div>
-            </div>
-            <div className="bg-blue-900 p-10 rounded-[3rem] shadow-2xl text-white">
-              <h4 className="text-blue-300 text-[11px] font-black uppercase mb-4 tracking-widest flex items-center gap-2"><BookOpen size={16}/> 관리 지침 (비공개 메모)</h4>
-              <p className="font-bold text-xl leading-relaxed whitespace-pre-wrap opacity-90">{String(selectedCustomer.privateMemo || "기록된 내부 지침이 없습니다.")}</p>
-            </div>
-            <button onClick={() => { setFormData({...initialReportForm, customerName: selectedCustomer.name}); setIsEditMode(false); setCurrentView('edit'); }} className="w-full bg-blue-100 text-blue-900 p-8 rounded-[2.5rem] font-black text-2xl flex items-center justify-center gap-3 active:scale-95 transition-all">이 거래처로 작업 시작 <ArrowRight size={28} strokeWidth={3}/></button>
-          </div>
-        )}
-
-        {/* --- 작업 작성/수정 폼 --- */}
-        {currentView === 'edit' && (
-          <div className="space-y-6 animate-in slide-in-from-bottom">
-            <h2 className="text-3xl font-black">{isEditMode ? "작업 기록 수정" : "신규 작업 작성"}</h2>
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-5">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 ml-2 uppercase tracking-widest">거래처 명칭</label>
-                <input type="text" className="w-full p-5 rounded-2xl bg-slate-50 border-none font-black text-2xl text-slate-900" value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} disabled={isEditMode} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 ml-2 uppercase tracking-widest">작업 일자</label>
-                <input type="date" className="w-full p-5 rounded-2xl bg-slate-50 border-none font-black text-2xl text-slate-900" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 ml-2 uppercase tracking-widest">상세 작업 내역</label>
-              <textarea placeholder="방역 서비스 상세 내용을 입력하세요..." className="w-full p-8 rounded-[2.5rem] border-2 border-slate-100 font-bold h-80 shadow-sm outline-none focus:border-blue-900 transition-all text-xl leading-relaxed" value={formData.workContent} onChange={e => setFormData({...formData, workContent: e.target.value})} />
-            </div>
-            <button onClick={() => saveToSheet('reports', formData, isEditMode ? 'update' : 'add')} className="w-full bg-blue-900 text-white p-8 rounded-[2.5rem] font-black text-2xl shadow-2xl active:scale-95 transition-all">
-              {isEditMode ? "수정 완료 및 저장" : "구글 시트에 전송"}
-            </button>
-            <button onClick={() => setCurrentView('dashboard')} className="w-full text-slate-400 font-black py-4 hover:text-slate-900 transition-colors">취소하고 나가기</button>
-          </div>
-        )}
-
-        {/* --- 보고서 뷰 (인쇄용) --- */}
+        {/* --- 보고서 상세 및 수정 --- */}
         {currentView === 'report_view' && (
            <div className="space-y-8 animate-in zoom-in-95">
              <div className="flex justify-between items-center print:hidden">
-               <button onClick={() => setCurrentView('reports_history')} className="text-slate-400 font-black flex items-center gap-2"><ChevronLeft size={28} strokeWidth={3}/> <span>목록으로</span></button>
-               <div className="flex gap-3">
-                 <button onClick={() => { setIsEditMode(true); setCurrentView('edit'); }} className="bg-white border-2 border-blue-900 text-blue-900 px-8 py-5 rounded-2xl font-black shadow-md flex items-center gap-2 active:scale-95 transition-all"><Edit3 size={20}/> 수정</button>
-                 <button onClick={() => { window.print(); }} className="bg-blue-900 text-white px-8 py-5 rounded-2xl font-black shadow-xl flex items-center gap-2 active:scale-95 transition-all"><Printer size={20}/> 인쇄 / PDF</button>
+               <button onClick={() => setCurrentView('reports_history')} className="text-slate-400 font-bold flex items-center gap-1"><ChevronLeft size={24}/> 목록</button>
+               <div className="flex gap-2">
+                 <button onClick={() => { setIsEditMode(true); setCurrentView('edit'); }} className="bg-white border-2 border-blue-900 text-blue-900 px-6 py-4 rounded-2xl font-black shadow-md flex items-center gap-2"><Edit3 size={18}/> 수정</button>
+                 <button onClick={handlePrint} className="bg-blue-900 text-white px-6 py-4 rounded-2xl font-black shadow-xl flex items-center gap-2"><Printer size={18}/> 인쇄</button>
                </div>
              </div>
-             
-             <div id="report-area" className="bg-white p-10 sm:p-24 border border-slate-100 shadow-2xl rounded-[4rem] text-left print:shadow-none print:border-none print:p-0 print:rounded-none">
-               <div className="border-b-8 border-blue-900 pb-12 mb-20 flex justify-between items-end">
-                 <div className="text-left"><h1 className="text-7xl font-black text-slate-900 tracking-tighter mb-4 leading-none">SERVICE<br/>REPORT</h1><p className="text-blue-600 font-black text-sm tracking-[0.6em] uppercase italic opacity-90">Expert Pest Control Solution</p></div>
-                 <div className="text-right font-black text-sm text-slate-400 uppercase tracking-widest pb-2">Service Date: {String(formData.date)}</div>
+             <div id="report-area" className="bg-white p-10 sm:p-20 border border-slate-100 shadow-2xl rounded-[3rem] text-left print:shadow-none print:border-none">
+               <div className="border-b-4 border-blue-900 pb-10 mb-16 flex justify-between items-end">
+                 <div className="text-left"><h1 className="text-5xl font-black text-slate-900 mb-2 leading-none">SERVICE REPORT</h1><p className="text-blue-600 font-black text-xs tracking-widest uppercase italic">BPCS 방역특별시</p></div>
+                 <div className="text-right font-black text-xs text-slate-400 uppercase tracking-widest">Date: {String(formData.date)}</div>
                </div>
-               <div className="space-y-20">
-                 <div className="grid grid-cols-2 gap-12">
-                   <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 text-left"><p className="text-[11px] font-black text-blue-800 uppercase mb-3 opacity-40 tracking-widest">Client Name</p><p className="text-4xl font-black text-slate-900">{String(formData.customerName)}</p></div>
-                   <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 text-left"><p className="text-[11px] font-black text-blue-800 uppercase mb-3 opacity-40 tracking-widest">Provider</p><p className="text-3xl font-black text-slate-900">BPCS 방역특별시</p></div>
+               <div className="space-y-16">
+                 <div className="grid grid-cols-2 gap-10">
+                   <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100"><p className="text-[10px] font-black text-blue-800 uppercase mb-2 opacity-50">Customer</p><p className="text-3xl font-black text-slate-900">{String(formData.customerName)}</p></div>
+                   <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100"><p className="text-[10px] font-black text-blue-800 uppercase mb-2 opacity-50">Provider</p><p className="text-2xl font-black text-slate-900">BPCS 방역특별시</p></div>
                  </div>
-                 <section className="text-left">
-                   <h4 className="text-[11px] font-black text-slate-400 uppercase mb-10 tracking-[0.5em] border-b-2 border-slate-100 pb-4">Service Details</h4>
-                   <div className="bg-slate-50 p-12 rounded-[3.5rem] min-h-[400px] leading-[1.8] font-bold text-2xl text-slate-800 whitespace-pre-wrap">{String(formData.workContent) || "서비스 내역이 비어 있습니다."}</div>
-                 </section>
-                 <div className="pt-20 border-t-2 border-slate-900 flex justify-between items-center font-black text-xs text-slate-400 uppercase tracking-widest"><p>Verification System v1.0</p><p>Authorized Signature: _________________</p></div>
+                 <section><h4 className="text-[10px] font-black text-slate-400 uppercase mb-6 tracking-widest border-b pb-3">Work Summary</h4><div className="bg-slate-50 p-10 rounded-[2.5rem] min-h-[300px] leading-[1.8] font-bold text-xl text-slate-800 whitespace-pre-wrap">{String(formData.workContent || "내용 없음")}</div></section>
                </div>
              </div>
            </div>
         )}
+
+        {/* --- 신규 작성 및 수정 폼 --- */}
+        {currentView === 'edit' && (
+          <div className="space-y-6 animate-in slide-in-from-bottom">
+            <h2 className="text-2xl font-black">{isEditMode ? "기록 수정" : "새 작업 작성"}</h2>
+            <div className="bg-white p-7 rounded-3xl shadow-sm border border-slate-100 space-y-4">
+              <input type="text" placeholder="거래처명" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} disabled={isEditMode} />
+              <input type="date" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+            </div>
+            <textarea placeholder="작업 내용을 입력하세요..." className="w-full p-8 rounded-[2.5rem] border-2 border-slate-100 font-bold h-72 shadow-sm outline-none text-lg" value={formData.workContent} onChange={e => setFormData({...formData, workContent: e.target.value})} />
+            <button onClick={() => saveToSheet('reports', formData, isEditMode ? 'update' : 'add')} className="w-full bg-blue-900 text-white p-7 rounded-3xl font-black text-2xl shadow-xl active:scale-95 transition-all">저장하기</button>
+          </div>
+        )}
       </main>
 
-      {/* 하단 탭 내비게이션 */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 p-4 pb-12 flex justify-around items-center print:hidden shadow-[0_-20px_50px_rgba(0,0,0,0.05)] z-40">
-        <button onClick={() => {setCurrentView('dashboard'); setSearchTerm('');}} className={`flex flex-col items-center gap-2 transition-all active:scale-90 ${currentView === 'dashboard' ? 'text-blue-900' : 'text-slate-300'}`}><Home size={30} strokeWidth={currentView === 'dashboard' ? 3 : 2}/><span className="text-[10px] font-black uppercase tracking-tighter">메인 홈</span></button>
-        <button onClick={() => {setCurrentView('reports_history'); setSearchTerm('');}} className={`flex flex-col items-center gap-2 transition-all active:scale-90 ${currentView === 'reports_history' ? 'text-blue-900' : 'text-slate-300'}`}><List size={30} strokeWidth={currentView === 'reports_history' ? 3 : 2}/><span className="text-[10px] font-black uppercase tracking-tighter">기록 수정</span></button>
+      {/* 하단 탭바 */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 p-4 pb-10 flex justify-around items-center print:hidden z-40">
+        <button onClick={() => {setCurrentView('dashboard'); setSearchTerm('');}} className={`flex flex-col items-center gap-1.5 ${currentView === 'dashboard' ? 'text-blue-900' : 'text-slate-300'}`}><Home size={26}/><span className="text-[10px] font-black uppercase tracking-tighter">홈</span></button>
+        <button onClick={() => {setCurrentView('reports_history'); setSearchTerm('');}} className={`flex flex-col items-center gap-1.5 ${currentView === 'reports_history' ? 'text-blue-900' : 'text-slate-300'}`}><List size={26}/><span className="text-[10px] font-black uppercase tracking-tighter">기록</span></button>
       </nav>
 
       <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         @media print {
-          html, body { visibility: hidden !important; background-color: white !important; -webkit-print-color-adjust: exact !important; }
-          #report-area { visibility: visible !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; height: auto !important; }
+          html, body { visibility: hidden !important; background-color: white !important; }
+          #report-area { visibility: visible !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; padding: 1.5cm !important; }
           #report-area * { visibility: visible !important; }
           .print\\:hidden, nav, button, input { display: none !important; }
         }
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
       `}} />
     </div>
   );
