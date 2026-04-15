@@ -63,10 +63,12 @@ const App = () => {
 
   const handlePrint = () => { window.focus(); setTimeout(() => window.print(), 500); };
 
-  // 핵심 수정: 검색어가 있을 때만, 오직 이름(name)에 포함된 경우만 필터링
+  // 핵심 수정: '이름'에 검색어가 포함될 때만 결과 목록에 넣음
   const filteredCustomers = customers.filter(c => {
-    if (!searchTerm.trim()) return false;
-    return renderSafeText(c.name).toLowerCase().includes(searchTerm.toLowerCase());
+    const name = renderSafeText(c.name).trim();
+    const search = searchTerm.trim();
+    if (!search) return false; // 검색어가 없으면 아무것도 안 보여줌
+    return name.includes(search); // 이름에 검색어가 포함되어야만 true
   });
 
   if (loading && customers.length === 0) {
@@ -106,10 +108,10 @@ const App = () => {
                 onChange={e => setSearchTerm(e.target.value)} 
               />
               
-              {/* 이름으로만 필터링된 결과 목록 */}
+              {/* 필터링된 결과만 보여주는 섹션 */}
               {searchTerm && (
-                <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-[2rem] shadow-2xl border border-blue-50 z-50 max-h-80 overflow-y-auto p-2 animate-in slide-in-from-top-2">
-                  <div className="px-5 py-3 text-[10px] font-black text-blue-900 uppercase tracking-widest border-b border-slate-50 mb-1">거래처 검색 결과</div>
+                <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-[2rem] shadow-2xl border border-blue-50 z-50 max-h-80 overflow-y-auto p-2">
+                  <div className="px-5 py-3 text-[10px] font-black text-blue-900 uppercase tracking-widest border-b border-slate-50 mb-1">거래처 명칭 검색 결과</div>
                   {filteredCustomers.length > 0 ? (
                     filteredCustomers.map(c => (
                       <div 
@@ -125,13 +127,12 @@ const App = () => {
                       </div>
                     ))
                   ) : (
-                    <div className="p-10 text-center text-slate-400 font-bold italic">일치하는 거래처 이름이 없습니다.</div>
+                    <div className="p-10 text-center text-slate-400 font-bold italic">검색 결과가 없습니다.</div>
                   )}
                 </div>
               )}
             </div>
 
-            {/* 메인 버튼 섹션 */}
             <div className="grid grid-cols-2 gap-3 pt-4">
               <button onClick={() => { setFormData(initialReportForm); setCurrentView('edit'); }} className="col-span-2 bg-blue-900 text-white p-7 rounded-[2rem] font-black text-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><Plus strokeWidth={3} size={28}/> 신규 작업 작성</button>
               <button onClick={() => { setCustomerFormData(initialCustomerForm); setCurrentView('customer_edit'); }} className="bg-white border-2 border-blue-900 text-blue-900 p-6 rounded-3xl font-bold flex flex-col items-center gap-1 active:bg-blue-50 transition-all shadow-sm"><UserPlus size={24}/><span className="text-sm">거래처 등록</span></button>
@@ -140,7 +141,7 @@ const App = () => {
           </div>
         )}
 
-        {/* 나머지 기능 코드 (동일하게 유지) */}
+        {/* 나머지 기능 뷰들 (customer_list, detail, edit, report_view) */}
         {currentView === 'customer_list' && (
           <div className="space-y-6 animate-in fade-in text-left">
              <button onClick={() => setCurrentView('dashboard')} className="flex items-center gap-1 text-slate-400 font-bold mb-4"><ChevronLeft size={24}/> <span>대시보드</span></button>
@@ -167,21 +168,10 @@ const App = () => {
         )}
       </main>
 
-      {/* 하단 탭바 */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-100 p-4 pb-10 flex justify-around items-center print:hidden shadow-[0_-10px_40px_rgba(0,0,0,0.03)] z-40"><button onClick={() => {setCurrentView('dashboard'); setSearchTerm('');}} className={`flex flex-col items-center gap-1.5 transition-all active:scale-90 ${currentView === 'dashboard' ? 'text-blue-900' : 'text-slate-300'}`}><Home size={26} strokeWidth={2.5}/><span className="text-[10px] font-black uppercase tracking-tighter">Dashboard</span></button><button onClick={() => {setCurrentView('customer_list'); setSearchTerm('');}} className={`flex flex-col items-center gap-1.5 transition-all active:scale-90 ${currentView.includes('customer') ? 'text-blue-900' : 'text-slate-300'}`}><Users size={26} strokeWidth={2.5}/><span className="text-[10px] font-black uppercase tracking-tighter">Clients</span></button></nav>
 
       <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         @media print {
           html, body { margin: 0 !important; padding: 0 !important; visibility: hidden !important; background-color: white !important; height: auto !important; overflow: visible !important; -webkit-print-color-adjust: exact !important; }
-          #report-area { visibility: visible !important; display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; padding: 1.5cm !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; }
-          #report-area * { visibility: visible !important; }
-          .print\\:hidden, nav, button, input, textarea { display: none !important; }
-        }
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
-      `}} />
-    </div>
-  );
-};
-
-export default App;
+          #report-area { visibility: visible !important; display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; padding: 1.5cm !important; border: none !
