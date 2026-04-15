@@ -63,7 +63,6 @@ const App = () => {
 
   const handlePrint = () => { window.focus(); setTimeout(() => window.print(), 500); };
 
-  // 오직 '거래처 이름(name)'만 포함하는 검색 로직
   const filteredCustomers = customers.filter(c => 
     searchTerm && renderSafeText(c.name).toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -96,13 +95,12 @@ const App = () => {
               </div>
               <input 
                 type="text" 
-                placeholder="거래처 이름만 검색 가능합니다..." 
+                placeholder="거래처 이름을 검색하세요..." 
                 className="w-full p-6 pl-14 rounded-[2rem] border-none shadow-xl bg-white font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all text-lg" 
                 value={searchTerm} 
                 onChange={e => setSearchTerm(e.target.value)} 
               />
               
-              {/* 이름으로만 필터링된 결과 목록 */}
               {filteredCustomers.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-[2rem] shadow-2xl border border-blue-50 z-50 max-h-80 overflow-y-auto p-2 animate-in slide-in-from-top-2">
                   <div className="px-5 py-3 text-[10px] font-black text-blue-900 uppercase tracking-widest border-b border-slate-50 mb-1">검색된 거래처</div>
@@ -128,21 +126,6 @@ const App = () => {
               <button onClick={() => { setCustomerFormData(initialCustomerForm); setCurrentView('customer_edit'); }} className="bg-white border-2 border-blue-900 text-blue-900 p-6 rounded-3xl font-bold flex flex-col items-center gap-1 active:bg-blue-50 transition-all shadow-sm"><UserPlus size={24}/><span className="text-sm">거래처 등록</span></button>
               <button onClick={() => setCurrentView('customer_list')} className="bg-white border-2 border-slate-200 text-slate-600 p-6 rounded-3xl font-bold flex flex-col items-center gap-1 active:bg-slate-50 transition-all shadow-sm"><Users size={24}/><span className="text-sm">거래처 목록</span></button>
             </div>
-
-            <div className="space-y-4">
-              <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1 text-left">최근 작업 기록</h4>
-              <div className="grid gap-3">
-                {reports.slice(0, 10).map(r => (
-                  <div key={r.id} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 flex justify-between items-center active:bg-slate-50 transition-all" onClick={() => { setFormData(r); setCurrentView('report_view'); }}>
-                    <div className="text-left">
-                      <div className="flex items-center gap-2 mb-1.5"><span className="text-[10px] font-black text-blue-900 bg-blue-50 px-2.5 py-1 rounded-full">{renderSafeText(r.date)}</span></div>
-                      <h4 className="font-black text-xl text-slate-900">{renderSafeText(r.customerName)}</h4>
-                    </div>
-                    <ChevronRight className="text-slate-200" />
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 
@@ -150,7 +133,7 @@ const App = () => {
           <div className="space-y-6 animate-in fade-in text-left">
              <button onClick={() => setCurrentView('dashboard')} className="flex items-center gap-1 text-slate-400 font-bold mb-4"><ChevronLeft size={24}/> <span>대시보드</span></button>
              <h2 className="text-3xl font-black text-left">거래처 목록</h2>
-             <input type="text" placeholder="거래처 이름으로만 검색..." className="w-full p-5 rounded-2xl border-none shadow-inner bg-white font-bold outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+             <input type="text" placeholder="거래처 이름으로 검색..." className="w-full p-5 rounded-2xl border-none shadow-inner bg-white font-bold outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
              <div className="space-y-3 pb-20">{customers.filter(c => renderSafeText(c.name).toLowerCase().includes(searchTerm.toLowerCase())).map(c => (<div key={c.id} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 flex justify-between items-center active:bg-slate-50 transition-all" onClick={() => { setSelectedCustomer(c); setCurrentView('customer_detail'); }}><div className="text-left"><h4 className="font-black text-xl text-slate-900">{renderSafeText(c.name)}</h4><p className="text-sm text-slate-400 mt-1">{renderSafeText(c.address) || "주소 미등록"}</p></div><ChevronRight className="text-slate-200" /></div>))}</div>
           </div>
         )}
