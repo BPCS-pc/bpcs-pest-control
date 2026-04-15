@@ -96,7 +96,7 @@ const App = () => {
               <div className="absolute inset-y-0 left-5 flex items-center text-slate-400"><Search size={20} /></div>
               <input 
                 type="text" 
-                placeholder="검색 (예: 24, 25)" 
+                placeholder="검색 (거래처명)" 
                 className="w-full p-6 pl-14 rounded-[2rem] border-none shadow-xl bg-white font-black text-xl outline-none focus:ring-4 focus:ring-blue-100 transition-all" 
                 value={searchTerm} 
                 onChange={e => setSearchTerm(e.target.value)} 
