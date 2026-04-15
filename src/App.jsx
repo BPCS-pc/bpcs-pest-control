@@ -63,10 +63,11 @@ const App = () => {
 
   const handlePrint = () => { window.focus(); setTimeout(() => window.print(), 500); };
 
-  // 오직 거래처 명칭(name)에서만 검색어를 찾습니다.
-  const filteredCustomers = customers.filter(c => 
-    searchTerm && renderSafeText(c.name).toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // 핵심 수정: 검색어가 있을 때만, 오직 이름(name)에 포함된 경우만 필터링
+  const filteredCustomers = customers.filter(c => {
+    if (!searchTerm.trim()) return false;
+    return renderSafeText(c.name).toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   if (loading && customers.length === 0) {
     return <div className="flex flex-col items-center justify-center min-h-screen bg-white"><div className="w-12 h-12 border-4 border-blue-900 border-t-transparent rounded-full animate-spin mb-4"></div><p className="font-black text-blue-900 tracking-widest text-center uppercase">데이터 동기화 중...</p></div>;
@@ -88,7 +89,10 @@ const App = () => {
       <main className="max-w-4xl mx-auto p-5 print:p-0">
         {currentView === 'dashboard' && (
           <div className="space-y-8 animate-in fade-in duration-500">
-            <header className="space-y-1"><h3 className="text-sm font-bold text-blue-800 italic text-left">Best Pest Control Solution</h3><h2 className="text-3xl font-black text-left">{new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}</h2></header>
+            <header className="space-y-1">
+              <h3 className="text-sm font-bold text-blue-800 italic text-left">Best Pest Control Solution</h3>
+              <h2 className="text-3xl font-black text-left">{new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}</h2>
+            </header>
             
             <div className="relative group">
               <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-900 transition-colors">
@@ -96,33 +100,39 @@ const App = () => {
               </div>
               <input 
                 type="text" 
-                placeholder="검색어 (예: 25 삼성...)" 
+                placeholder="검색" 
                 className="w-full p-6 pl-14 rounded-[2rem] border-none shadow-xl bg-white font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all text-lg" 
                 value={searchTerm} 
                 onChange={e => setSearchTerm(e.target.value)} 
               />
               
-              {filteredCustomers.length > 0 && (
+              {/* 이름으로만 필터링된 결과 목록 */}
+              {searchTerm && (
                 <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-[2rem] shadow-2xl border border-blue-50 z-50 max-h-80 overflow-y-auto p-2 animate-in slide-in-from-top-2">
-                  <div className="px-5 py-3 text-[10px] font-black text-blue-900 uppercase tracking-widest border-b border-slate-50 mb-1">거래처 명칭 검색 결과</div>
-                  {filteredCustomers.map(c => (
-                    <div 
-                      key={c.id} 
-                      className="flex items-center justify-between p-5 hover:bg-blue-50 rounded-2xl cursor-pointer transition-colors active:scale-[0.98]"
-                      onClick={() => { setSelectedCustomer(c); setCurrentView('customer_detail'); setSearchTerm(''); }}
-                    >
-                      <div className="text-left">
-                        <div className="font-black text-lg text-slate-900">{renderSafeText(c.name)}</div>
-                        <div className="text-[10px] text-slate-400 mt-0.5">{renderSafeText(c.address)}</div>
+                  <div className="px-5 py-3 text-[10px] font-black text-blue-900 uppercase tracking-widest border-b border-slate-50 mb-1">거래처 검색 결과</div>
+                  {filteredCustomers.length > 0 ? (
+                    filteredCustomers.map(c => (
+                      <div 
+                        key={c.id} 
+                        className="flex items-center justify-between p-5 hover:bg-blue-50 rounded-2xl cursor-pointer transition-colors active:scale-[0.98]"
+                        onClick={() => { setSelectedCustomer(c); setCurrentView('customer_detail'); setSearchTerm(''); }}
+                      >
+                        <div className="text-left">
+                          <div className="font-black text-lg text-slate-900">{renderSafeText(c.name)}</div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">{renderSafeText(c.address)}</div>
+                        </div>
+                        <div className="bg-blue-100 p-2 rounded-full text-blue-900"><ArrowRight size={16}/></div>
                       </div>
-                      <div className="bg-blue-100 p-2 rounded-full text-blue-900"><ArrowRight size={16}/></div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <div className="p-10 text-center text-slate-400 font-bold italic">일치하는 거래처 이름이 없습니다.</div>
+                  )}
                 </div>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            {/* 메인 버튼 섹션 */}
+            <div className="grid grid-cols-2 gap-3 pt-4">
               <button onClick={() => { setFormData(initialReportForm); setCurrentView('edit'); }} className="col-span-2 bg-blue-900 text-white p-7 rounded-[2rem] font-black text-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><Plus strokeWidth={3} size={28}/> 신규 작업 작성</button>
               <button onClick={() => { setCustomerFormData(initialCustomerForm); setCurrentView('customer_edit'); }} className="bg-white border-2 border-blue-900 text-blue-900 p-6 rounded-3xl font-bold flex flex-col items-center gap-1 active:bg-blue-50 transition-all shadow-sm"><UserPlus size={24}/><span className="text-sm">거래처 등록</span></button>
               <button onClick={() => setCurrentView('customer_list')} className="bg-white border-2 border-slate-200 text-slate-600 p-6 rounded-3xl font-bold flex flex-col items-center gap-1 active:bg-slate-50 transition-all shadow-sm"><Users size={24}/><span className="text-sm">거래처 목록</span></button>
@@ -130,12 +140,12 @@ const App = () => {
           </div>
         )}
 
-        {/* 나머지 뷰(customer_list, detail, edit 등)는 이전과 동일함 */}
+        {/* 나머지 기능 코드 (동일하게 유지) */}
         {currentView === 'customer_list' && (
           <div className="space-y-6 animate-in fade-in text-left">
              <button onClick={() => setCurrentView('dashboard')} className="flex items-center gap-1 text-slate-400 font-bold mb-4"><ChevronLeft size={24}/> <span>대시보드</span></button>
              <h2 className="text-3xl font-black text-left">거래처 목록</h2>
-             <input type="text" placeholder="이름으로 검색..." className="w-full p-5 rounded-2xl border-none shadow-inner bg-white font-bold outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+             <input type="text" placeholder="검색" className="w-full p-5 rounded-2xl border-none shadow-inner bg-white font-bold outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
              <div className="space-y-3 pb-20">{customers.filter(c => renderSafeText(c.name).toLowerCase().includes(searchTerm.toLowerCase())).map(c => (<div key={c.id} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 flex justify-between items-center active:bg-slate-50 transition-all" onClick={() => { setSelectedCustomer(c); setCurrentView('customer_detail'); }}><div className="text-left"><h4 className="font-black text-xl text-slate-900">{renderSafeText(c.name)}</h4><p className="text-sm text-slate-400 mt-1">{renderSafeText(c.address) || "주소 미등록"}</p></div><ChevronRight className="text-slate-200" /></div>))}</div>
           </div>
         )}
@@ -157,6 +167,7 @@ const App = () => {
         )}
       </main>
 
+      {/* 하단 탭바 */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-100 p-4 pb-10 flex justify-around items-center print:hidden shadow-[0_-10px_40px_rgba(0,0,0,0.03)] z-40"><button onClick={() => {setCurrentView('dashboard'); setSearchTerm('');}} className={`flex flex-col items-center gap-1.5 transition-all active:scale-90 ${currentView === 'dashboard' ? 'text-blue-900' : 'text-slate-300'}`}><Home size={26} strokeWidth={2.5}/><span className="text-[10px] font-black uppercase tracking-tighter">Dashboard</span></button><button onClick={() => {setCurrentView('customer_list'); setSearchTerm('');}} className={`flex flex-col items-center gap-1.5 transition-all active:scale-90 ${currentView.includes('customer') ? 'text-blue-900' : 'text-slate-300'}`}><Users size={26} strokeWidth={2.5}/><span className="text-[10px] font-black uppercase tracking-tighter">Clients</span></button></nav>
 
       <style dangerouslySetInnerHTML={{ __html: `
