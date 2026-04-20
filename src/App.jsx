@@ -4,7 +4,7 @@ import {
   Home, Users, ChevronLeft, Phone, MapPin, BookOpen, Edit3, Printer, UserPlus, CheckSquare, Square, List, Info
 } from 'lucide-react';
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWvHRx4jSkPcqajhIqcrLgq0qhEgyj8P6xnpu4260h3mxvkEPlaThkeOLjSo7VVIGG/exec"; 
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby6-c9c2x3oLwairwTlmGsq9kkqwBeWoTz4WOtGaD64Dh1ntXLGiF0mn90Yyhsft42j/exec"; 
 
 const ALL_PESTS = ["바퀴벌레", "개미", "쥐", "보행해충", "비래_해충", "빈대", "흰개미", "기타"];
 
