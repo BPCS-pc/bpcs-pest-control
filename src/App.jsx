@@ -114,7 +114,6 @@ const App = () => {
             <div className="grid grid-cols-2 gap-3 pt-4">
               <button onClick={() => { setFormData(initialReportForm); setCurrentView('edit'); }} className="col-span-2 bg-blue-900 text-white p-8 rounded-[2rem] font-black text-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><Plus strokeWidth={4} size={32}/> 신규 작업 작성</button>
               <button onClick={() => { setCustomerFormData(initialCustomerForm); setCurrentView('customer_edit'); }} className="bg-white border-2 border-blue-900 text-blue-900 p-6 rounded-3xl font-black flex flex-col items-center gap-2 shadow-sm"><UserPlus size={24}/>거래처 등록</button>
-              {/* 수정된 버튼: '기록 수정' 대신 '거래처 목록' 배치 */}
               <button onClick={() => { setCurrentView('customer_list'); setSearchTerm(''); }} className="bg-white border-2 border-slate-200 text-slate-600 p-6 rounded-3xl font-black flex flex-col items-center gap-2 shadow-sm"><Users size={24}/>거래처 목록</button>
             </div>
           </div>
@@ -181,4 +180,29 @@ const App = () => {
               <input type="text" placeholder="거래처명" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} />
               <input type="date" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
             </div>
-            <textarea placeholder="방역 내용을 상세히 적어주세요..." className="w-full p-8 rounded-[2.5rem] border-2 border-slate-100 font-bold h-72 shadow-sm outline-none text-lg" value={formData.workContent} onChange={e => setFormData({...formData, workContent
+            <textarea placeholder="방역 내용을 상세히 적어주세요..." className="w-full p-8 rounded-[2.5rem] border-2 border-slate-100 font-bold h-72 shadow-sm outline-none text-lg" value={formData.workContent} onChange={e => setFormData({...formData, workContent: e.target.value})} />
+            <button onClick={() => saveToSheet('reports', {...formData, id: Date.now().toString()})} className="w-full bg-blue-900 text-white p-7 rounded-3xl font-black text-2xl shadow-xl">보고서 저장</button>
+          </div>
+        )}
+      </main>
+
+      {/* 하단 탭바 */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 p-4 pb-10 flex justify-around items-center print:hidden z-40">
+        <button onClick={() => {setCurrentView('dashboard'); setSearchTerm('');}} className={`flex flex-col items-center gap-1.5 ${currentView === 'dashboard' ? 'text-blue-900' : 'text-slate-300'}`}><Home size={26}/><span className="text-[10px] font-black uppercase tracking-tighter">홈</span></button>
+        <button onClick={() => {setCurrentView('customer_list'); setSearchTerm('');}} className={`flex flex-col items-center gap-1.5 ${currentView === 'customer_list' ? 'text-blue-900' : 'text-slate-300'}`}><Users size={26}/><span className="text-[10px] font-black uppercase tracking-tighter">거래처</span></button>
+      </nav>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        @media print {
+          html, body { visibility: hidden !important; background-color: white !important; }
+          #report-area { visibility: visible !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; padding: 1.5cm !important; }
+          #report-area * { visibility: visible !important; }
+          .print\\:hidden, nav, button, input { display: none !important; }
+        }
+      `}} />
+    </div>
+  );
+};
+
+export default App;
