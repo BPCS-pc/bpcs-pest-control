@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, ChevronRight, ShieldCheck, X, ArrowRight,
-  Home, Users, ChevronLeft, Phone, MapPin, BookOpen, Edit3, Printer, UserPlus, CheckSquare, Square, List, Info, Layout
+  Home, Users, ChevronLeft, Phone, MapPin, BookOpen, Edit3, Printer, UserPlus, CheckSquare, Square, List, Info, Calendar
 } from 'lucide-react';
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWvHRx4jSkPcqajhIqcrLgq0qhEgyj8P6xnpu4260h3mxvkEPlaThkeOLjSo7VVIGG/exec"; 
@@ -36,6 +36,12 @@ const safeParseChecklist = (val) => {
   }
 };
 
+const formatDate = (val) => {
+  if (!val) return "";
+  const str = String(val);
+  return str.includes('T') ? str.split('T')[0] : str.substring(0, 10);
+};
+
 const App = () => {
   const [reports, setReports] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -45,7 +51,7 @@ const App = () => {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   
   const initialReportForm = { id: '', customerName: '', date: new Date().toISOString().split('T')[0], checklist: {}, workContent: '', privateMemo: '' };
-  const initialCustomerForm = { id: '', name: '', phone: '', address: '', checklist: {}, insectTrap: '', termiteTrap: '', generalMemo: '', privateMemo: '' };
+  const initialCustomerForm = { id: '', name: '', phone: '', address: '', contractDate: '', checklist: {}, insectTrap: '', termiteTrap: '', generalMemo: '', privateMemo: '' };
   
   const [formData, setFormData] = useState(initialReportForm);
   const [customerFormData, setCustomerFormData] = useState(initialCustomerForm);
@@ -181,6 +187,9 @@ const App = () => {
                 <button onClick={() => { setCustomerFormData({...selectedCustomer, checklist: safeParseChecklist(selectedCustomer.checklist)}); setIsCustomerEditMode(true); setCurrentView('customer_edit'); }} className="bg-blue-50 text-blue-900 px-4 py-2 rounded-xl font-black text-xs flex items-center gap-1"><Edit3 size={14}/> 정보 수정</button>
               </div>
               <div className="space-y-4 text-slate-600 font-bold">
+                {selectedCustomer.contractDate && (
+                  <p className="flex items-center gap-3"><Calendar size={20} className="text-blue-900"/> {formatDate(selectedCustomer.contractDate)}</p>
+                )}
                 <p className="flex items-center gap-3"><Phone size={20} className="text-blue-900"/> {forceString(selectedCustomer.phone) || "연락처 미등록"}</p>
                 <p className="flex items-center gap-3"><MapPin size={20} className="text-blue-900"/> {forceString(selectedCustomer.address) || "주소 미등록"}</p>
               </div>
@@ -221,7 +230,30 @@ const App = () => {
                 <p className="font-bold text-sm leading-relaxed whitespace-pre-wrap">{forceString(selectedCustomer.privateMemo) || "기록 없음"}</p>
               </div>
             </div>
-            <button onClick={() => { setFormData({...initialReportForm, customerName: selectedCustomer.name}); setCurrentView('edit'); }} className="w-full bg-blue-900 text-white p-7 rounded-3xl font-black text-lg flex items-center justify-center gap-2 mt-4 shadow-xl">이 거래처로 작업 시작 <ArrowRight size={20}/></button>
+
+            {/* 작업 이력 영역 */}
+            <div className="bg-white p-7 rounded-3xl border shadow-sm mt-4">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><List size={14}/> 이전 작업 이력</h4>
+              {(() => {
+                const customerReports = reports.filter(r => forceString(r.customerName) === forceString(selectedCustomer.name));
+                return customerReports.length > 0 ? (
+                  <div className="space-y-4">
+                    {customerReports.map(report => (
+                      <div key={report.id} className="border-b border-slate-100 pb-4 last:border-0 last:pb-0">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-black text-blue-900">{formatDate(report.date)}</span>
+                        </div>
+                        <p className="text-sm font-bold text-slate-600 whitespace-pre-wrap">{forceString(report.workContent) || "내용 없음"}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-slate-300 italic text-sm font-bold">기록된 작업이 없습니다.</p>
+                );
+              })()}
+            </div>
+
+            <button onClick={() => { setFormData({...initialReportForm, customerName: selectedCustomer.name}); setCurrentView('edit'); }} className="w-full bg-blue-900 text-white p-7 rounded-3xl font-black text-lg flex items-center justify-center gap-2 mt-4 shadow-xl mb-6">이 거래처로 신규 작업 등록 <ArrowRight size={20}/></button>
           </div>
         )}
 
@@ -232,6 +264,10 @@ const App = () => {
               <input type="text" placeholder="거래처 명칭" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={customerFormData.name} onChange={e => setCustomerFormData({...customerFormData, name: e.target.value})} />
               <input type="tel" placeholder="연락처" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={customerFormData.phone} onChange={e => setCustomerFormData({...customerFormData, phone: e.target.value})} />
               <input type="text" placeholder="주소" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={customerFormData.address} onChange={e => setCustomerFormData({...customerFormData, address: e.target.value})} />
+              <div className="flex items-center bg-slate-50 p-4 rounded-xl">
+                 <span className="text-sm font-bold text-slate-400 mr-4 whitespace-nowrap">계약일</span>
+                 <input type="date" className="w-full bg-transparent border-none font-bold text-lg outline-none" value={formatDate(customerFormData.contractDate)} onChange={e => setCustomerFormData({...customerFormData, contractDate: e.target.value})} />
+              </div>
             </div>
 
             <div className="space-y-3 px-1">
