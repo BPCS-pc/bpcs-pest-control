@@ -4,9 +4,9 @@ import {
   Home, Users, ChevronLeft, Phone, MapPin, BookOpen, Edit3, Printer, UserPlus, CheckSquare, Square, List, Info
 } from 'lucide-react';
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby6-c9c2x3oLwairwTlmGsq9kkqwBeWoTz4WOtGaD64Dh1ntXLGiF0mn90Yyhsft42j/exec"; 
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWvHRx4jSkPcqajhIqcrLgq0qhEgyj8P6xnpu4260h3mxvkEPlaThkeOLjSo7VVIGG/exec"; 
 
-const ALL_PESTS = ["바퀴벌레", "개미", "쥐", "보행해충", "비래_해충", "빈대", "흰개미", "기타"];
+const ALL_PESTS = ["바퀴벌레", "개미", "쥐", "보행해충", "비래해충", "빈대", "흰개미", "기타"];
 
 const ChecklistItem = ({ pest, checked, onToggle }) => (
   <div onClick={onToggle} className={`flex items-center gap-2 p-4 rounded-2xl border-2 transition-all cursor-pointer select-none active:scale-95 ${checked ? 'bg-blue-900 border-blue-900 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-500 shadow-sm'}`}>
@@ -23,8 +23,17 @@ const safeParseChecklist = (val) => {
     return JSON.parse(val); 
   } catch (e) {
     let legacy = {};
+    const strVal = String(val);
     ALL_PESTS.forEach(p => {
-      if (String(val).includes(p)) legacy[p] = true;
+      if (p === '개미') {
+        // '흰개미' 단어를 제외하고 '개미'가 포함되어 있는지 확인
+        if (strVal.replace(/흰개미/g, '').includes('개미')) legacy[p] = true;
+      } else if (p === '비래해충') {
+        // 기존 '비래_해충' 데이터 호환
+        if (strVal.includes('비래해충') || strVal.includes('비래_해충')) legacy[p] = true;
+      } else {
+        if (strVal.includes(p)) legacy[p] = true;
+      }
     });
     return legacy;
   }
