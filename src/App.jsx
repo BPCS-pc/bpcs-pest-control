@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, ChevronRight, ShieldCheck, X, ArrowRight,
-  Home, Users, ChevronLeft, Phone, MapPin, BookOpen, Edit3, Printer, UserPlus, CheckSquare, Square, List, Info
+  Home, Users, ChevronLeft, Phone, MapPin, BookOpen, Edit3, Printer, UserPlus, CheckSquare, Square, List, Info, Layout
 } from 'lucide-react';
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWvHRx4jSkPcqajhIqcrLgq0qhEgyj8P6xnpu4260h3mxvkEPlaThkeOLjSo7VVIGG/exec"; 
@@ -15,7 +15,6 @@ const ChecklistItem = ({ pest, checked, onToggle }) => (
   </div>
 );
 
-// 구글 시트의 과거 텍스트 데이터를 에러 없이 안전하게 변환하는 함수
 const safeParseChecklist = (val) => {
   if (!val) return {};
   if (typeof val === 'object') return val;
@@ -26,10 +25,8 @@ const safeParseChecklist = (val) => {
     const strVal = String(val);
     ALL_PESTS.forEach(p => {
       if (p === '개미') {
-        // '흰개미' 단어를 제외하고 '개미'가 포함되어 있는지 확인
         if (strVal.replace(/흰개미/g, '').includes('개미')) legacy[p] = true;
       } else if (p === '비래해충') {
-        // 기존 '비래_해충' 데이터 호환
         if (strVal.includes('비래해충') || strVal.includes('비래_해충')) legacy[p] = true;
       } else {
         if (strVal.includes(p)) legacy[p] = true;
@@ -48,7 +45,7 @@ const App = () => {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   
   const initialReportForm = { id: '', customerName: '', date: new Date().toISOString().split('T')[0], checklist: {}, workContent: '', privateMemo: '' };
-  const initialCustomerForm = { id: '', name: '', phone: '', address: '', checklist: {}, generalMemo: '', privateMemo: '' };
+  const initialCustomerForm = { id: '', name: '', phone: '', address: '', checklist: {}, insectTrap: '', termiteTrap: '', generalMemo: '', privateMemo: '' };
   
   const [formData, setFormData] = useState(initialReportForm);
   const [customerFormData, setCustomerFormData] = useState(initialCustomerForm);
@@ -188,6 +185,17 @@ const App = () => {
                 <p className="flex items-center gap-3"><MapPin size={20} className="text-blue-900"/> {forceString(selectedCustomer.address) || "주소 미등록"}</p>
               </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white p-6 rounded-3xl border shadow-sm text-center">
+                <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Insect Trap</p>
+                <p className="text-2xl font-black text-blue-900">{forceString(selectedCustomer.insectTrap) || "0"}</p>
+              </div>
+              <div className="bg-white p-6 rounded-3xl border shadow-sm text-center">
+                <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Termite Trap</p>
+                <p className="text-2xl font-black text-blue-900">{forceString(selectedCustomer.termiteTrap) || "0"}</p>
+              </div>
+            </div>
             
             <div className="grid grid-cols-1 gap-4">
               <div className="bg-white p-7 rounded-3xl border shadow-sm">
@@ -221,9 +229,23 @@ const App = () => {
           <div className="space-y-8 animate-in slide-in-from-bottom pb-20">
             <h2 className="text-3xl font-black">{isCustomerEditMode ? "거래처 정보 수정" : "신규 거래처 등록"}</h2>
             <div className="bg-white p-7 rounded-3xl shadow-sm border border-slate-100 space-y-4">
-              <input type="text" placeholder="거래처 명칭 (예: 25 삼성식당)" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={customerFormData.name} onChange={e => setCustomerFormData({...customerFormData, name: e.target.value})} />
+              <input type="text" placeholder="거래처 명칭" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={customerFormData.name} onChange={e => setCustomerFormData({...customerFormData, name: e.target.value})} />
               <input type="tel" placeholder="연락처" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={customerFormData.phone} onChange={e => setCustomerFormData({...customerFormData, phone: e.target.value})} />
               <input type="text" placeholder="주소" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={customerFormData.address} onChange={e => setCustomerFormData({...customerFormData, address: e.target.value})} />
+            </div>
+
+            <div className="space-y-3 px-1">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">장비 관리 (Managed Equipment)</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <p className="text-xs font-black text-slate-400 ml-1">Insect Trap 수량</p>
+                  <input type="number" placeholder="0" className="w-full p-5 rounded-2xl bg-white border-2 border-slate-100 font-black text-xl" value={customerFormData.insectTrap} onChange={e => setCustomerFormData({...customerFormData, insectTrap: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-black text-slate-400 ml-1">Termite Trap 수량</p>
+                  <input type="number" placeholder="0" className="w-full p-5 rounded-2xl bg-white border-2 border-slate-100 font-black text-xl" value={customerFormData.termiteTrap} onChange={e => setCustomerFormData({...customerFormData, termiteTrap: e.target.value})} />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-3 px-1">
