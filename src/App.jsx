@@ -36,10 +36,28 @@ const safeParseChecklist = (val) => {
   }
 };
 
+// 🌟 날짜 시차(UTC) 버그 수정 함수
 const formatDate = (val) => {
   if (!val) return "";
+  try {
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  } catch (e) {}
   const str = String(val);
   return str.includes('T') ? str.split('T')[0] : str.substring(0, 10);
+};
+
+const getToday = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const App = () => {
@@ -50,7 +68,7 @@ const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   
-  const initialReportForm = { id: '', customerName: '', date: new Date().toISOString().split('T')[0], checklist: {}, workContent: '', privateMemo: '' };
+  const initialReportForm = { id: '', customerName: '', date: getToday(), checklist: {}, workContent: '', privateMemo: '' };
   const initialCustomerForm = { id: '', name: '', phone: '', address: '', contractDate: '', checklist: {}, insectTrap: '', termiteTrap: '', generalMemo: '', privateMemo: '' };
   
   const [formData, setFormData] = useState(initialReportForm);
@@ -154,7 +172,7 @@ const App = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-4">
-              <button onClick={() => { setFormData(initialReportForm); setIsReportEditMode(false); setCurrentView('edit'); }} className="col-span-2 bg-blue-900 text-white p-8 rounded-[2rem] font-black text-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><Plus strokeWidth={4} size={32}/> 신규 작업 작성</button>
+              <button onClick={() => { setFormData({...initialReportForm, date: getToday()}); setIsReportEditMode(false); setCurrentView('edit'); }} className="col-span-2 bg-blue-900 text-white p-8 rounded-[2rem] font-black text-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><Plus strokeWidth={4} size={32}/> 신규 작업 작성</button>
               <button onClick={() => { setCustomerFormData(initialCustomerForm); setIsCustomerEditMode(false); setCurrentView('customer_edit'); }} className="bg-white border-2 border-blue-900 text-blue-900 p-6 rounded-3xl font-black flex flex-col items-center gap-2 shadow-sm"><UserPlus size={24}/>거래처 등록</button>
               <button onClick={() => { setCurrentView('customer_list'); setSearchTerm(''); }} className="bg-white border-2 border-slate-200 text-slate-600 p-6 rounded-3xl font-black flex flex-col items-center gap-2 shadow-sm"><Users size={24}/>거래처 목록</button>
             </div>
@@ -233,7 +251,7 @@ const App = () => {
               </div>
             </div>
 
-            {/* 작업 이력 영역 (수정 버튼 포함) */}
+            {/* 작업 이력 영역 */}
             <div className="bg-white p-7 rounded-3xl border shadow-sm mt-4">
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><List size={14}/> 이전 작업 이력</h4>
               {(() => {
@@ -243,10 +261,12 @@ const App = () => {
                     {customerReports.map(report => (
                       <div key={report.id} className="group border-b border-slate-100 pb-5 last:border-0 last:pb-0">
                         <div className="flex justify-between items-center mb-2">
+                          {/* 🌟 수정된 formatDate 반영 */}
                           <span className="font-black text-blue-900 text-lg">{formatDate(report.date)}</span>
                           <button 
                             onClick={() => {
-                              setFormData({...report, checklist: safeParseChecklist(report.checklist)});
+                              // 수정 시 폼의 date 데이터도 포맷팅을 거쳐 입력되도록 변경
+                              setFormData({...report, date: formatDate(report.date), checklist: safeParseChecklist(report.checklist)});
                               setIsReportEditMode(true);
                               setCurrentView('edit');
                             }} 
@@ -265,7 +285,7 @@ const App = () => {
               })()}
             </div>
 
-            <button onClick={() => { setFormData({...initialReportForm, customerName: selectedCustomer.name}); setIsReportEditMode(false); setCurrentView('edit'); }} className="w-full bg-blue-900 text-white p-7 rounded-3xl font-black text-lg flex items-center justify-center gap-2 mt-4 shadow-xl mb-6 active:scale-95">이 거래처로 신규 작업 등록 <ArrowRight size={20}/></button>
+            <button onClick={() => { setFormData({...initialReportForm, date: getToday(), customerName: selectedCustomer.name}); setIsReportEditMode(false); setCurrentView('edit'); }} className="w-full bg-blue-900 text-white p-7 rounded-3xl font-black text-lg flex items-center justify-center gap-2 mt-4 shadow-xl mb-6 active:scale-95">이 거래처로 신규 작업 등록 <ArrowRight size={20}/></button>
           </div>
         )}
 
@@ -328,7 +348,10 @@ const App = () => {
             <h2 className="text-3xl font-black">{isReportEditMode ? "작업 내용 수정" : "방역 작업 작성"}</h2>
             <div className="bg-white p-7 rounded-3xl shadow-sm border border-slate-100 space-y-4">
               <input type="text" placeholder="거래처명" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} />
-              <input type="date" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+              <div className="flex items-center bg-slate-50 p-4 rounded-xl">
+                 <span className="text-sm font-bold text-slate-400 mr-4 whitespace-nowrap">작업일</span>
+                 <input type="date" className="w-full bg-transparent border-none font-bold text-lg outline-none" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+              </div>
             </div>
             <div className="space-y-3 px-1">
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">해충 점검</h4>
