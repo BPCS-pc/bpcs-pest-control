@@ -56,6 +56,7 @@ const App = () => {
   const [formData, setFormData] = useState(initialReportForm);
   const [customerFormData, setCustomerFormData] = useState(initialCustomerForm);
   const [isCustomerEditMode, setIsCustomerEditMode] = useState(false);
+  const [isReportEditMode, setIsReportEditMode] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -84,6 +85,7 @@ const App = () => {
         setCurrentView('dashboard'); 
         setSearchTerm(''); 
         setIsCustomerEditMode(false);
+        setIsReportEditMode(false);
       }, 1500);
     } catch (e) { setLoading(false); }
   };
@@ -152,7 +154,7 @@ const App = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-4">
-              <button onClick={() => { setFormData(initialReportForm); setCurrentView('edit'); }} className="col-span-2 bg-blue-900 text-white p-8 rounded-[2rem] font-black text-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><Plus strokeWidth={4} size={32}/> 신규 작업 작성</button>
+              <button onClick={() => { setFormData(initialReportForm); setIsReportEditMode(false); setCurrentView('edit'); }} className="col-span-2 bg-blue-900 text-white p-8 rounded-[2rem] font-black text-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"><Plus strokeWidth={4} size={32}/> 신규 작업 작성</button>
               <button onClick={() => { setCustomerFormData(initialCustomerForm); setIsCustomerEditMode(false); setCurrentView('customer_edit'); }} className="bg-white border-2 border-blue-900 text-blue-900 p-6 rounded-3xl font-black flex flex-col items-center gap-2 shadow-sm"><UserPlus size={24}/>거래처 등록</button>
               <button onClick={() => { setCurrentView('customer_list'); setSearchTerm(''); }} className="bg-white border-2 border-slate-200 text-slate-600 p-6 rounded-3xl font-black flex flex-col items-center gap-2 shadow-sm"><Users size={24}/>거래처 목록</button>
             </div>
@@ -188,7 +190,7 @@ const App = () => {
               </div>
               <div className="space-y-4 text-slate-600 font-bold">
                 {selectedCustomer.contractDate && (
-                  <p className="flex items-center gap-3"><Calendar size={20} className="text-blue-900"/> {formatDate(selectedCustomer.contractDate)}</p>
+                  <p className="flex items-center gap-3"><Calendar size={20} className="text-blue-900"/> 계약일: {formatDate(selectedCustomer.contractDate)}</p>
                 )}
                 <p className="flex items-center gap-3"><Phone size={20} className="text-blue-900"/> {forceString(selectedCustomer.phone) || "연락처 미등록"}</p>
                 <p className="flex items-center gap-3"><MapPin size={20} className="text-blue-900"/> {forceString(selectedCustomer.address) || "주소 미등록"}</p>
@@ -231,19 +233,29 @@ const App = () => {
               </div>
             </div>
 
-            {/* 작업 이력 영역 */}
+            {/* 작업 이력 영역 (수정 버튼 포함) */}
             <div className="bg-white p-7 rounded-3xl border shadow-sm mt-4">
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><List size={14}/> 이전 작업 이력</h4>
               {(() => {
                 const customerReports = reports.filter(r => forceString(r.customerName) === forceString(selectedCustomer.name));
                 return customerReports.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {customerReports.map(report => (
-                      <div key={report.id} className="border-b border-slate-100 pb-4 last:border-0 last:pb-0">
+                      <div key={report.id} className="group border-b border-slate-100 pb-5 last:border-0 last:pb-0">
                         <div className="flex justify-between items-center mb-2">
-                          <span className="font-black text-blue-900">{formatDate(report.date)}</span>
+                          <span className="font-black text-blue-900 text-lg">{formatDate(report.date)}</span>
+                          <button 
+                            onClick={() => {
+                              setFormData({...report, checklist: safeParseChecklist(report.checklist)});
+                              setIsReportEditMode(true);
+                              setCurrentView('edit');
+                            }} 
+                            className="p-2.5 bg-slate-50 text-slate-300 rounded-xl hover:text-blue-900 hover:bg-blue-50 transition-all"
+                          >
+                            <Edit3 size={18}/>
+                          </button>
                         </div>
-                        <p className="text-sm font-bold text-slate-600 whitespace-pre-wrap">{forceString(report.workContent) || "내용 없음"}</p>
+                        <p className="text-sm font-bold text-slate-600 whitespace-pre-wrap leading-relaxed">{forceString(report.workContent) || "내용 없음"}</p>
                       </div>
                     ))}
                   </div>
@@ -253,10 +265,11 @@ const App = () => {
               })()}
             </div>
 
-            <button onClick={() => { setFormData({...initialReportForm, customerName: selectedCustomer.name}); setCurrentView('edit'); }} className="w-full bg-blue-900 text-white p-7 rounded-3xl font-black text-lg flex items-center justify-center gap-2 mt-4 shadow-xl mb-6">이 거래처로 신규 작업 등록 <ArrowRight size={20}/></button>
+            <button onClick={() => { setFormData({...initialReportForm, customerName: selectedCustomer.name}); setIsReportEditMode(false); setCurrentView('edit'); }} className="w-full bg-blue-900 text-white p-7 rounded-3xl font-black text-lg flex items-center justify-center gap-2 mt-4 shadow-xl mb-6 active:scale-95">이 거래처로 신규 작업 등록 <ArrowRight size={20}/></button>
           </div>
         )}
 
+        {/* --- 거래처 등록/수정 폼 --- */}
         {currentView === 'customer_edit' && (
           <div className="space-y-8 animate-in slide-in-from-bottom pb-20">
             <h2 className="text-3xl font-black">{isCustomerEditMode ? "거래처 정보 수정" : "신규 거래처 등록"}</h2>
@@ -271,7 +284,7 @@ const App = () => {
             </div>
 
             <div className="space-y-3 px-1">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">장비 관리 (Managed Equipment)</h4>
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">장비 관리</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <p className="text-xs font-black text-slate-400 ml-1">Insect Trap 수량</p>
@@ -299,26 +312,20 @@ const App = () => {
             </div>
 
             <div className="space-y-4">
-              <div className="space-y-2">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">일반 메모</h4>
-                <textarea placeholder="고객 관련 일반적인 사항..." className="w-full p-6 rounded-3xl border-2 border-slate-100 font-bold h-32 outline-none focus:border-blue-900" value={customerFormData.generalMemo} onChange={e => setCustomerFormData({...customerFormData, generalMemo: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">내부 메모 (비공개)</h4>
-                <textarea placeholder="현장 지침 및 관리자 참고 사항..." className="w-full p-6 rounded-3xl border-2 border-slate-100 font-bold h-32 outline-none focus:border-blue-900 bg-slate-50" value={customerFormData.privateMemo} onChange={e => setCustomerFormData({...customerFormData, privateMemo: e.target.value})} />
-              </div>
+              <textarea placeholder="일반 메모 (고객 정보)..." className="w-full p-6 rounded-3xl border-2 border-slate-100 font-bold h-32 outline-none focus:border-blue-900" value={customerFormData.generalMemo} onChange={e => setCustomerFormData({...customerFormData, generalMemo: e.target.value})} />
+              <textarea placeholder="내부 메모 (비공개)..." className="w-full p-6 rounded-3xl border-2 border-slate-100 font-bold h-32 outline-none focus:border-blue-900 bg-slate-50" value={customerFormData.privateMemo} onChange={e => setCustomerFormData({...customerFormData, privateMemo: e.target.value})} />
             </div>
 
-            <button onClick={() => saveToSheet('customers', isCustomerEditMode ? customerFormData : {...customerFormData, id: Date.now().toString()}, isCustomerEditMode ? 'update' : 'add')} className="w-full bg-blue-900 text-white p-7 rounded-3xl font-black text-xl shadow-xl">
+            <button onClick={() => saveToSheet('customers', isCustomerEditMode ? customerFormData : {...customerFormData, id: Date.now().toString()}, isCustomerEditMode ? 'update' : 'add')} className="w-full bg-blue-900 text-white p-7 rounded-3xl font-black text-xl shadow-xl active:scale-95">
               {isCustomerEditMode ? "수정 내용 저장" : "거래처 등록 완료"}
             </button>
-            <button onClick={() => { setCurrentView('dashboard'); setIsCustomerEditMode(false); }} className="w-full text-slate-300 font-bold py-2">취소하고 돌아가기</button>
           </div>
         )}
 
+        {/* --- 작업 작성/수정 폼 --- */}
         {currentView === 'edit' && (
           <div className="space-y-6 animate-in slide-in-from-bottom pb-20">
-            <h2 className="text-3xl font-black">방역 작업 작성</h2>
+            <h2 className="text-3xl font-black">{isReportEditMode ? "작업 내용 수정" : "방역 작업 작성"}</h2>
             <div className="bg-white p-7 rounded-3xl shadow-sm border border-slate-100 space-y-4">
               <input type="text" placeholder="거래처명" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} />
               <input type="date" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
@@ -332,7 +339,9 @@ const App = () => {
               </div>
             </div>
             <textarea placeholder="방역 내용을 상세히 적어주세요..." className="w-full p-8 rounded-[2.5rem] border-2 border-slate-100 font-bold h-72 shadow-sm outline-none text-lg" value={formData.workContent} onChange={e => setFormData({...formData, workContent: e.target.value})} />
-            <button onClick={() => saveToSheet('reports', {...formData, id: Date.now().toString()})} className="w-full bg-blue-900 text-white p-7 rounded-3xl font-black text-2xl shadow-xl">보고서 저장</button>
+            <button onClick={() => saveToSheet('reports', isReportEditMode ? formData : {...formData, id: Date.now().toString()}, isReportEditMode ? 'update' : 'add')} className="w-full bg-blue-900 text-white p-7 rounded-3xl font-black text-2xl shadow-xl active:scale-95">
+              {isReportEditMode ? "작업 내용 업데이트" : "보고서 저장"}
+            </button>
           </div>
         )}
       </main>
@@ -341,16 +350,6 @@ const App = () => {
         <button onClick={() => {setCurrentView('dashboard'); setSearchTerm('');}} className={`flex flex-col items-center gap-1.5 ${currentView === 'dashboard' ? 'text-blue-900' : 'text-slate-300'}`}><Home size={26}/><span className="text-[10px] font-black uppercase tracking-tighter">홈</span></button>
         <button onClick={() => {setCurrentView('customer_list'); setSearchTerm('');}} className={`flex flex-col items-center gap-1.5 ${currentView === 'customer_list' ? 'text-blue-900' : 'text-slate-300'}`}><Users size={26}/><span className="text-[10px] font-black uppercase tracking-tighter">거래처</span></button>
       </nav>
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        @media print {
-          html, body { visibility: hidden !important; background-color: white !important; }
-          #report-area { visibility: visible !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; padding: 1.5cm !important; }
-          #report-area * { visibility: visible !important; }
-          .print\\:hidden, nav, button, input, textarea { display: none !important; }
-        }
-      `}} />
     </div>
   );
 };
