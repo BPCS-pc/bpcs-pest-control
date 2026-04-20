@@ -20,9 +20,8 @@ const safeParseChecklist = (val) => {
   if (!val) return {};
   if (typeof val === 'object') return val;
   try {
-    return JSON.parse(val); // 정상적인 JSON 데이터인 경우
+    return JSON.parse(val); 
   } catch (e) {
-    // 과거 수기 데이터("흰개미", "쥐" 등 텍스트)인 경우 에러 대신 해당 해충을 찾아 자동 체크 처리
     let legacy = {};
     ALL_PESTS.forEach(p => {
       if (String(val).includes(p)) legacy[p] = true;
@@ -219,4 +218,74 @@ const App = () => {
             </div>
 
             <div className="space-y-3 px-1">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">대상 해충 체크리스트</h4>
+              <div className="grid grid-cols-2 gap-3">
+                {ALL_PESTS.map((pest, i) => (
+                  <ChecklistItem 
+                    key={i} 
+                    pest={pest} 
+                    checked={customerFormData.checklist && customerFormData.checklist[pest]} 
+                    onToggle={() => setCustomerFormData(p => ({...p, checklist: {...(p.checklist || {}), [pest]: !(p.checklist && p.checklist[pest])}}))} 
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">일반 메모</h4>
+                <textarea placeholder="고객 관련 일반적인 사항..." className="w-full p-6 rounded-3xl border-2 border-slate-100 font-bold h-32 outline-none focus:border-blue-900" value={customerFormData.generalMemo} onChange={e => setCustomerFormData({...customerFormData, generalMemo: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">내부 메모 (비공개)</h4>
+                <textarea placeholder="현장 지침 및 관리자 참고 사항..." className="w-full p-6 rounded-3xl border-2 border-slate-100 font-bold h-32 outline-none focus:border-blue-900 bg-slate-50" value={customerFormData.privateMemo} onChange={e => setCustomerFormData({...customerFormData, privateMemo: e.target.value})} />
+              </div>
+            </div>
+
+            <button onClick={() => saveToSheet('customers', isCustomerEditMode ? customerFormData : {...customerFormData, id: Date.now().toString()}, isCustomerEditMode ? 'update' : 'add')} className="w-full bg-blue-900 text-white p-7 rounded-3xl font-black text-xl shadow-xl">
+              {isCustomerEditMode ? "수정 내용 저장" : "거래처 등록 완료"}
+            </button>
+            <button onClick={() => { setCurrentView('dashboard'); setIsCustomerEditMode(false); }} className="w-full text-slate-300 font-bold py-2">취소하고 돌아가기</button>
+          </div>
+        )}
+
+        {currentView === 'edit' && (
+          <div className="space-y-6 animate-in slide-in-from-bottom pb-20">
+            <h2 className="text-3xl font-black">방역 작업 작성</h2>
+            <div className="bg-white p-7 rounded-3xl shadow-sm border border-slate-100 space-y-4">
+              <input type="text" placeholder="거래처명" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} />
+              <input type="date" className="w-full p-4 rounded-xl bg-slate-50 border-none font-bold text-lg" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+            </div>
+            <div className="space-y-3 px-1">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">해충 점검</h4>
+              <div className="grid grid-cols-2 gap-3">
+                {ALL_PESTS.map((pest, i) => (
+                  <ChecklistItem key={i} pest={pest} checked={formData.checklist && formData.checklist[pest]} onToggle={() => setFormData(p => ({...p, checklist: {...(p.checklist || {}), [pest]: !(p.checklist && p.checklist[pest])}}))} />
+                ))}
+              </div>
+            </div>
+            <textarea placeholder="방역 내용을 상세히 적어주세요..." className="w-full p-8 rounded-[2.5rem] border-2 border-slate-100 font-bold h-72 shadow-sm outline-none text-lg" value={formData.workContent} onChange={e => setFormData({...formData, workContent: e.target.value})} />
+            <button onClick={() => saveToSheet('reports', {...formData, id: Date.now().toString()})} className="w-full bg-blue-900 text-white p-7 rounded-3xl font-black text-2xl shadow-xl">보고서 저장</button>
+          </div>
+        )}
+      </main>
+
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 p-4 pb-10 flex justify-around items-center print:hidden z-40">
+        <button onClick={() => {setCurrentView('dashboard'); setSearchTerm('');}} className={`flex flex-col items-center gap-1.5 ${currentView === 'dashboard' ? 'text-blue-900' : 'text-slate-300'}`}><Home size={26}/><span className="text-[10px] font-black uppercase tracking-tighter">홈</span></button>
+        <button onClick={() => {setCurrentView('customer_list'); setSearchTerm('');}} className={`flex flex-col items-center gap-1.5 ${currentView === 'customer_list' ? 'text-blue-900' : 'text-slate-300'}`}><Users size={26}/><span className="text-[10px] font-black uppercase tracking-tighter">거래처</span></button>
+      </nav>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        @media print {
+          html, body { visibility: hidden !important; background-color: white !important; }
+          #report-area { visibility: visible !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; padding: 1.5cm !important; }
+          #report-area * { visibility: visible !important; }
+          .print\\:hidden, nav, button, input, textarea { display: none !important; }
+        }
+      `}} />
+    </div>
+  );
+};
+
+export default App;
